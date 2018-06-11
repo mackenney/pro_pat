@@ -148,14 +148,14 @@ def get_Gab_real_im(img_array, grid_size=1):
     return out
 
 
-def get_TAS(im_path, grid_size=4):
+def get_TAS(img_array, grid_size=4):
     """
-    Parameterless TAS para una imagen.
-    :param im_path:
+    Parameterless TAS for one image.
+    :param img_array:
     :param grid_size:
     :return: 27* grid_size^2 (check)
     """
-    img = mahotas.imread(im_path)
+    img = np.asarray(img_array)
     window_size = (np.asarray([img.shape])[0:2] / grid_size).astype(int)[0]
     im_grid = np.asarray(skimage.util.view_as_blocks(img, tuple([window_size[0], window_size[1], 3])))
     windows = []
