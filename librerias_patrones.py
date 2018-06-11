@@ -10,6 +10,7 @@ from sklearn.svm import SVC, LinearSVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+from sklearn.neural_network import MLPClassifier
 
 from mlxtend.feature_selection import SequentialFeatureSelector as SFS
 from mlxtend.feature_selection import ExhaustiveFeatureSelector as EFS
@@ -27,7 +28,7 @@ import cv2
 debug = True
 
 
-def get_LBP(image_array, radius=1, grid_size=1):
+def get_LBP(image_array, radius=1, grid_size=1, j=10):
     """
     LBP para una imagen. 59 bins
     :param image_array:
@@ -35,6 +36,8 @@ def get_LBP(image_array, radius=1, grid_size=1):
     :param grid_size:
     :return:
     """
+    if j % 50 == 0: 
+        print("|", end = "", flush = True)
     p = 8
     img = np.asarray(image_array)
     window_size = (np.asarray([img.shape]) / grid_size).astype(int)[0]
@@ -52,7 +55,7 @@ def get_LBP(image_array, radius=1, grid_size=1):
     return out
 
 
-def get_Haralick(im_arr, dist=1, grid_size=1):
+def get_Haralick(im_arr, dist=1, grid_size=1, j=10):
     """
     Haralick para una imagen.
     :param im_arr:
@@ -60,6 +63,9 @@ def get_Haralick(im_arr, dist=1, grid_size=1):
     :param grid_size:
     :return: 13*4*grid_size^2 array length
     """
+
+    if j % 50 == 0: 
+        print("|", end = "", flush = True)
     img = np.asarray(im_arr).astype(int)
     img = mahotas.stretch(img, 31)
     window_size = (np.asarray([img.shape]) / grid_size).astype(int)[0]
@@ -77,13 +83,15 @@ def get_Haralick(im_arr, dist=1, grid_size=1):
     return out
 
 
-def get_Gab(img_array, grid_size=1):
+def get_Gab(img_array, grid_size=1, j=10):
     """
     Gabor filters.
     :param im_path:
     :param grid_size:
     :return:
     """
+    if j % 50 == 0: 
+        print("|", end = "", flush = True)
     img = np.asarray(img_array)
     window_size = (np.asarray([img.shape]) / grid_size).astype(int)[0]
     im_grid = np.asarray(skimage.util.view_as_blocks(img, tuple(window_size)))
@@ -110,13 +118,15 @@ def get_Gab(img_array, grid_size=1):
     return out
 
 
-def get_Gab_real_im(img_array, grid_size=1):
+def get_Gab_real_im(img_array, grid_size=1, j=10):
     """
     Gabor filters, not combining real an imaginary parts
     :param im_path:
     :param grid_size:
     :return:
     """
+    if j % 50 == 0: 
+        print("|", end = "", flush = True)
     img = np.asarray(img_array)
     window_size = (np.asarray([img.shape]) / grid_size).astype(int)[0]
     im_grid = np.asarray(skimage.util.view_as_blocks(img, tuple(window_size)))
@@ -164,9 +174,12 @@ def get_TAS(im_path, grid_size=4):
             windows.append(im_grid[i, j, 0])
     tas_features = []
     for i in range(len(windows)):
+        if (i % 10 == 0):
+            print("|", end = "", flush = True)
         t = pftas(windows[i])
         t = np.ravel(np.asarray(t))
         tas_features.append(t)
+    print(" ")
     out = np.ravel(np.asarray(tas_features))
     return out
 
@@ -190,9 +203,12 @@ def get_HoG(im_path, grid_size=4):
 
     hog_features = []
     for i in range(len(windows)):
+        if (i % 10 == 0):
+            print("|", end = "", flush = True)
         hist = hog(windows[i])
         hog_features.append(hist)
     out = np.ravel(np.asarray(hog_features))
+    print(" ")
     return out
 
 
@@ -697,6 +713,26 @@ def classification_LDA(X_tr, X_te, y_tr, y_te, solver='lsqr'):
     print('accuracy:', lda.score(X_te, y_te))
     return results
 
+def classification_MLP(X_tr, X_te, y_tr, y_te, solver='lbfgs'):
+    """
+    Multi-layer Perceptron classifier
+    http://scikit-learn.org/stable/modules/generated/sklearn.neural_network.MLPClassifier.html#sklearn.neural_network.MLPClassifier
+    :param X_tr:
+    :param X_te:
+    :param y_tr:
+    :param y_te:
+    :param solver:
+    :return:
+    """
+    
+    # mlp = MLPClassifier(solver=solver, alpha=1e-5, hidden_layer_sizes=(5, 2), random_state=1)
+    mlp = MLPClassifier(hidden_layer_sizes=(50, ), activation='logistic', solver='adam', alpha=0.0001, batch_size='auto', learning_rate='constant', learning_rate_init=0.001, power_t=0.5, max_iter=200, shuffle=True, random_state=None, tol=0.0001, verbose=False, warm_start=False, momentum=0.9, nesterovs_momentum=True, early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
+    mlp.fit(X_tr, y_tr)
+    results = mlp.predict(X_te)
+    print('accuracy:', mlp.score(X_te, y_te))
+    return results
+
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -717,9 +753,9 @@ def separate_train_test(feats):
     return X_train, X_test, y_train, y_test
 
 
-def get_img_names():
-    names_list = [('faces/face_' + str(i).zfill(3) + '_' + str(j).zfill(5) + '.png')
-                  for i in range(1, 8) for j in range(1, 241)]
+def get_img_names(ammount = 240):
+    names_list = [('faces2/face_' + str(i).zfill(3) + '_' + str(j).zfill(5) + '.png')
+                  for i in range(1, 8) for j in range(1, ammount + 1)]
     return names_list
 
 
