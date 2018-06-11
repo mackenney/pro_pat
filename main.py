@@ -4,6 +4,7 @@ import cv2
 
 import librerias_patrones as lib_pat
 from sklearn.metrics import confusion_matrix as CM
+import tflearn as tf
 
 
 def extraction_routine(arr_name, lbp_grids, lbp_dists, har_grids, har_dists, gab_grids1, gab_grids2):
@@ -180,7 +181,7 @@ if __name__ == '__main__':
         if extraer:
             extraction_routine('very_huge_raw_raw_features', lbp_params[0], lbp_params[1],
                                har_params[0], har_params[1], gab1_params, gab2_params)
-        feats = np.load('very_huge_raw_features.npy')
+        feats = np.load('very_huge_raw_raw_features.npy')
     else:
         quit()
 
@@ -196,22 +197,34 @@ if __name__ == '__main__':
     print('Final reduction (for no colinear features)')
     X_tr, X_te = lib_pat.dim_red_auto_PCA(X_tr, X_te, ratio=.9)
 
-    print('Classification via KNN 9')
+    # print('Classification via KNN 9')
+    #
+    # k1 = lib_pat.classification_knn(X_tr, X_te, y_tr, y_te, 9)
+    #
+    # print('Classification via SVC linear')
+    # k2 = lib_pat.classification_SVM(X_tr, X_te, y_tr, y_te, kernel='linear')
+    #
+    # print('Classification via SVC poli')
+    # k3 = lib_pat.classification_SVM(X_tr, X_te, y_tr, y_te, kernel='poly', degree=3)
+    #
+    # print('Classification via LDA solver=svd')
+    # k4 = lib_pat.classification_LDA(X_tr, X_te, y_tr, y_te, solver='svd')
 
-    k1 = lib_pat.classification_knn(X_tr, X_te, y_tr, y_te, 9)
+    print('Classification via Neural Networks')
+    net = tf.input_data(shape=[None, X_tr.shape[1]])
+    net = tf.fully_connected(net, 32)
+    net = tf.fully_connected(net, 7, activation='softmax')
+    net = tf.regression(net)
+    model = tf.DNN(net)
+    model.fit(X_tr, y_tr, n_epoch=10, batch_size=7, show_metric=True)
 
-    print('Classification via SVC linear')
-    k2 = lib_pat.classification_SVM(X_tr, X_te, y_tr, y_te, kernel='linear')
+    pred = model.predict(X_te)
 
-    print('Classification via SVC poli')
-    k3 = lib_pat.classification_SVM(X_tr, X_te, y_tr, y_te, kernel='poly', degree=3)
 
-    print('Classification via LDA solver=svd')
-    k4 = lib_pat.classification_LDA(X_tr, X_te, y_tr, y_te, solver='svd')
 
-    np.savetxt('k1', CM(y_te, k1), fmt='%2i', delimiter=',')
-    np.savetxt('k2', CM(y_te, k2), fmt='%2i', delimiter=',')
-    np.savetxt('k3', CM(y_te, k3), fmt='%2i', delimiter=',')
-    np.savetxt('k4', CM(y_te, k4), fmt='%2i', delimiter=',')
+    # np.savetxt('k1', CM(y_te, k1), fmt='%2i', delimiter=',')
+    # np.savetxt('k2', CM(y_te, k2), fmt='%2i', delimiter=',')
+    # np.savetxt('k3', CM(y_te, k3), fmt='%2i', delimiter=',')
+    # np.savetxt('k4', CM(y_te, k4), fmt='%2i', delimiter=',')
 
     quit()
