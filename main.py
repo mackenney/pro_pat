@@ -28,7 +28,7 @@ def extraction_routine(arr_name, lbp_grids, lbp_dists, har_grids, har_dists, gab
     for i in range(len(lbp_grids)):
         print('LPB Extraction, Iteration {}/{}'.format((i + 1), len(lbp_grids)))
         with mp.Pool() as p:
-            print("|---------------------------------------|")
+            print("|-----------------------------------------------------|")
             lbp = p.starmap(lib_pat.get_LBP, [(images[j], lbp_dists[i], lbp_grids[i], j) for j in range(len(images))])
             print(" ")
         lbps.append(lbp)
@@ -39,7 +39,7 @@ def extraction_routine(arr_name, lbp_grids, lbp_dists, har_grids, har_dists, gab
     for i in range(len(har_grids)):
         print('Haralick Extraction, Iteration {}/{}'.format((i + 1), len(har_grids)))
         with mp.Pool() as p:
-            print("|---------------------------------------|")
+            print("|-----------------------------------------------------|")
             har = p.starmap(lib_pat.get_Haralick, [(images[j], har_dists[i], har_grids[i], j) for j in range(len(images))])
             print(" ")
         hars.append(har)
@@ -49,7 +49,7 @@ def extraction_routine(arr_name, lbp_grids, lbp_dists, har_grids, har_dists, gab
     for i in range(len(gab_grids1)):
         print('Gabor Extraction, Iteration {}/{}'.format((i + 1), len(gab_grids1)))
         with mp.Pool() as p:
-            print("|---------------------------------------|")
+            print("|-----------------------------------------------------|")
             gab = p.starmap(lib_pat.get_Gab, [(images[j], gab_grids1[i], j) for j in range(len(images))])
             print(" ")
         gabs1.append(gab)
@@ -59,7 +59,7 @@ def extraction_routine(arr_name, lbp_grids, lbp_dists, har_grids, har_dists, gab
     for i in range(len(gab_grids2)):
         print('Gabor Extraction, Iteration {}/{}'.format((i + 1), len(gab_grids2)))
         with mp.Pool() as p:
-            print("|---------------------------------------|")
+            print("|-----------------------------------------------------|")
             gab = p.starmap(lib_pat.get_Gab_real_im, [(images[j], gab_grids2[i], j) for j in range(len(images))])
             print(" ")
         gabs2.append(gab)
@@ -109,7 +109,7 @@ def red_routine_per_batch2(X, pca_ratio=.99):
     :return: X_tr, X_te, index
     """
     n = len(X[0])
-    X_tr, X_te, y_tr, y_te = lib_pat.separate_train_test(X)
+    X_tr, X_te, y_tr, y_te = lib_pat.separate_train_test(X, 400)
     pca_tr, pca_te = lib_pat.dim_red_auto_PCA(X_tr, X_te, pca_ratio)
     return pca_tr, pca_te
 
@@ -156,7 +156,7 @@ if __name__ == '__main__':
     
     
     """
-    dataset = 2
+    dataset = 3
     extraer = True
 
     print('Extracting and/or reading features...')
@@ -204,22 +204,22 @@ if __name__ == '__main__':
     print('Removing features with low variance')
     feats, labels = lib_pat.delete_zero_variance_features(feats, labels, 0.1)
     print('Separating Features...')
-    X_tr, X_te, y_tr, y_te = lib_pat.separate_train_test(feats)
+    X_tr, X_te, y_tr, y_te = lib_pat.separate_train_test(feats, 400)
 
     print('Reducing features by transformation')
     X_tr, X_te = reduction_routine(feats, labels, .99)
     print('Final reduction (for no colinear features)')
     X_tr, X_te = lib_pat.dim_red_auto_PCA(X_tr, X_te, ratio=.9)
 
-    print('Classification via KNN 9')
+    # print('Classification via KNN 9')
 
-    k1 = lib_pat.classification_knn(X_tr, X_te, y_tr, y_te, 9)
+    # k1 = lib_pat.classification_knn(X_tr, X_te, y_tr, y_te, 9)
 
-    print('Classification via SVC linear')
-    k2 = lib_pat.classification_SVM(X_tr, X_te, y_tr, y_te, kernel='linear')
+    # print('Classification via SVC linear')
+    # k2 = lib_pat.classification_SVM(X_tr, X_te, y_tr, y_te, kernel='linear')
 
-    print('Classification via SVC poli')
-    k3 = lib_pat.classification_SVM(X_tr, X_te, y_tr, y_te, kernel='poly', degree=3)
+    # print('Classification via SVC poli')
+    # k3 = lib_pat.classification_SVM(X_tr, X_te, y_tr, y_te, kernel='poly', degree=3)
 
     print('Classification via LDA solver=svd')
     k4 = lib_pat.classification_LDA(X_tr, X_te, y_tr, y_te, solver='svd')
@@ -227,9 +227,9 @@ if __name__ == '__main__':
     print('Classification via MLP')
     k5 = lib_pat.classification_LDA(X_tr, X_te, y_tr, y_te)
 
-    np.savetxt('k1', CM(y_te, k1), fmt='%2i', delimiter=',')
-    np.savetxt('k2', CM(y_te, k2), fmt='%2i', delimiter=',')
-    np.savetxt('k3', CM(y_te, k3), fmt='%2i', delimiter=',')
+    # np.savetxt('k1', CM(y_te, k1), fmt='%2i', delimiter=',')
+    # np.savetxt('k2', CM(y_te, k2), fmt='%2i', delimiter=',')
+    # np.savetxt('k3', CM(y_te, k3), fmt='%2i', delimiter=',')
     np.savetxt('k4', CM(y_te, k4), fmt='%2i', delimiter=',')
     np.savetxt('k5', CM(y_te, k5), fmt='%2i', delimiter=',')
 

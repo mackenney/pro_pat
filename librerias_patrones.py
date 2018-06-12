@@ -36,7 +36,7 @@ def get_LBP(image_array, radius=1, grid_size=1, j=10):
     :param grid_size:
     :return:
     """
-    if j % 50 == 0: 
+    if j % 30 == 0: 
         print("|", end = "", flush = True)
     p = 8
     img = np.asarray(image_array)
@@ -64,7 +64,7 @@ def get_Haralick(im_arr, dist=1, grid_size=1, j=10):
     :return: 13*4*grid_size^2 array length
     """
 
-    if j % 50 == 0: 
+    if j % 30 == 0: 
         print("|", end = "", flush = True)
     img = np.asarray(im_arr).astype(int)
     img = mahotas.stretch(img, 31)
@@ -90,7 +90,7 @@ def get_Gab(img_array, grid_size=1, j=10):
     :param grid_size:
     :return:
     """
-    if j % 50 == 0: 
+    if j % 30 == 0: 
         print("|", end = "", flush = True)
     img = np.asarray(img_array)
     window_size = (np.asarray([img.shape]) / grid_size).astype(int)[0]
@@ -125,7 +125,7 @@ def get_Gab_real_im(img_array, grid_size=1, j=10):
     :param grid_size:
     :return:
     """
-    if j % 50 == 0: 
+    if j % 30 == 0: 
         print("|", end = "", flush = True)
     img = np.asarray(img_array)
     window_size = (np.asarray([img.shape]) / grid_size).astype(int)[0]
@@ -737,15 +737,15 @@ def classification_MLP(X_tr, X_te, y_tr, y_te, solver='lbfgs'):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-def separate_train_test(feats):
+def separate_train_test(feats, image_size=240):
     """
     Separates the database in training and testing groups. Also labels the pictures.
     :param feats: Feature matrix
     :return: X_train, X_test, y_train, y_test
     """
-    train = np.array([i for i in range(240 * 7)], np.dtype(int)) % 240 < 200
-    test = np.array([i for i in range(240 * 7)], np.dtype(int)) % 240 >= 200
-    y = np.array([i for i in range(1, 8) for j in range(240)])
+    train = np.array([i for i in range(image_size * 7)], np.dtype(int)) % image_size < 360
+    test = np.array([i for i in range(image_size * 7)], np.dtype(int)) % image_size >= 360
+    y = np.array([i for i in range(1, 8) for j in range(image_size)])
     X_train = feats[train]
     X_test = feats[test]
     y_train = y[train]
