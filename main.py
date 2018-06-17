@@ -19,7 +19,7 @@ def extraction_routine(arr_name, lbp_grids, lbp_dists, har_grids, har_dists, gab
     :param gab_grids1: idem
     :return: void
     """
-    names = lib_pat.get_img_names(400)
+    names = lib_pat.get_img_names(240)
     # path = './faces2/*.png'
     # names = glob.glob(path) 
     images = [cv2.imread(names[i], 0) for i in range(len(names))]
@@ -97,7 +97,7 @@ def generate_labels(lbp_grids, har_grids, gab_grids1, gab_grids2):
     return lab
 
 
-def red_routine_per_batch2(X, pca_ratio=.99):
+def red_routine_per_batch2(X, pca_ratio=.99, cantidad = 240):
     """
     Takes a batch of features and expands them with kpca and pca. then performs a RFECV selection.
     :param X:
@@ -109,12 +109,12 @@ def red_routine_per_batch2(X, pca_ratio=.99):
     :return: X_tr, X_te, index
     """
     n = len(X[0])
-    X_tr, X_te, y_tr, y_te = lib_pat.separate_train_test(X, 400)
+    X_tr, X_te, y_tr, y_te = lib_pat.separate_train_test(X, cantidad)
     pca_tr, pca_te = lib_pat.dim_red_auto_PCA(X_tr, X_te, pca_ratio)
     return pca_tr, pca_te
 
 
-def reduction_routine(feats, labels, ratio=.99):
+def reduction_routine(feats, labels, ratio=.99, ammount = 240):
     """
     Reduces the number of features by appling PCA to every set of features for every window.
     :param feats:
@@ -125,20 +125,20 @@ def reduction_routine(feats, labels, ratio=.99):
     f_tr = []
     f_te = []
     n = np.max(labels) + 1
-    print('feature redution routine...')
-    print("|--------------------------------|")
+    # print('feature redution routine...')
+    # print("|--------------------------------|")
     for i in range(n):
         # print('Iteration {}/{}'.format(i, n))
-        if (i % 10 == 0):
-            print("|", end = "", flush = True)
+        # if (i % 10 == 0):
+            # print("|", end = "", flush = True)
         index = labels == i
         if np.count_nonzero(index) == 0:
             continue
         X = feats[:, index]
-        tr, te = red_routine_per_batch2(X, ratio)
+        tr, te = red_routine_per_batch2(X, ratio, ammount)
         f_tr.append(tr)
         f_te.append(te)
-    print(" ")
+    # print(" ")
     X_tr = np.concatenate(f_tr, axis=1)
     X_te = np.concatenate(f_te, axis=1)
     print(X_tr.shape, X_te.shape)
@@ -156,8 +156,9 @@ if __name__ == '__main__':
     
     
     """
-    dataset = 3
-    extraer = True
+    dataset = 4
+    extraer = False
+    cantidad = 240
 
     print('Extracting and/or reading features...')
     if dataset == 1:
@@ -204,10 +205,10 @@ if __name__ == '__main__':
     print('Removing features with low variance')
     feats, labels = lib_pat.delete_zero_variance_features(feats, labels, 0.1)
     print('Separating Features...')
-    X_tr, X_te, y_tr, y_te = lib_pat.separate_train_test(feats, 400)
+    X_tr, X_te, y_tr, y_te = lib_pat.separate_train_test(feats, cantidad)
 
     print('Reducing features by transformation')
-    X_tr, X_te = reduction_routine(feats, labels, .99)
+    X_tr, X_te = reduction_routine(feats, labels, .99, cantidad)
     print('Final reduction (for no colinear features)')
     X_tr, X_te = lib_pat.dim_red_auto_PCA(X_tr, X_te, ratio=.9)
 

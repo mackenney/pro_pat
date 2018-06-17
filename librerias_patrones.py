@@ -36,8 +36,8 @@ def get_LBP(image_array, radius=1, grid_size=1, j=10):
     :param grid_size:
     :return:
     """
-    if j % 30 == 0: 
-        print("|", end = "", flush = True)
+    # if j % 30 == 0: 
+    #     print("|", end = "", flush = True)
     p = 8
     img = np.asarray(image_array)
     window_size = (np.asarray([img.shape]) / grid_size).astype(int)[0]
@@ -64,8 +64,8 @@ def get_Haralick(im_arr, dist=1, grid_size=1, j=10):
     :return: 13*4*grid_size^2 array length
     """
 
-    if j % 30 == 0: 
-        print("|", end = "", flush = True)
+    # if j % 30 == 0: 
+    #     print("|", end = "", flush = True)
     img = np.asarray(im_arr).astype(int)
     img = mahotas.stretch(img, 31)
     window_size = (np.asarray([img.shape]) / grid_size).astype(int)[0]
@@ -90,8 +90,8 @@ def get_Gab(img_array, grid_size=1, j=10):
     :param grid_size:
     :return:
     """
-    if j % 30 == 0: 
-        print("|", end = "", flush = True)
+    # if j % 30 == 0: 
+    #     print("|", end = "", flush = True)
     img = np.asarray(img_array)
     window_size = (np.asarray([img.shape]) / grid_size).astype(int)[0]
     im_grid = np.asarray(skimage.util.view_as_blocks(img, tuple(window_size)))
@@ -125,8 +125,8 @@ def get_Gab_real_im(img_array, grid_size=1, j=10):
     :param grid_size:
     :return:
     """
-    if j % 30 == 0: 
-        print("|", end = "", flush = True)
+    # if j % 30 == 0: 
+    #     print("|", end = "", flush = True)
     img = np.asarray(img_array)
     window_size = (np.asarray([img.shape]) / grid_size).astype(int)[0]
     im_grid = np.asarray(skimage.util.view_as_blocks(img, tuple(window_size)))
@@ -743,13 +743,42 @@ def separate_train_test(feats, image_size=240):
     :param feats: Feature matrix
     :return: X_train, X_test, y_train, y_test
     """
-    train = np.array([i for i in range(image_size * 7)], np.dtype(int)) % image_size < 360
-    test = np.array([i for i in range(image_size * 7)], np.dtype(int)) % image_size >= 360
+    separate = round(image_size * 0.9)
+    separate2 = round(image_size * 0.9 * 7)
+    sets = np.arange(image_size * 7)
+    # print(sets)
+    np.random.shuffle(sets)
+    # print(separate)
+    # print(sets[:separate])
+    # a = sets[:separate] % image_size < separate
+    # print(a)
+    test = [False] * image_size * 7
+    train = [True] * image_size * 7
+    # test = np.array([i for i in range(image_size * 7)], np.dtype(bool))
+    # train = np.array([i for i in range(image_size * 7)], np.dtype(bool))
+    # print(sets)
+    # print(separate2)
+    # print(sets[separate2:])
+    for i in sets[separate2:]:
+        train[i] = False
+    for i in sets[separate2:]:
+        test[i] = True
+    # print("AAAA")
+    test = np.array(test)
+    train = np.array(train)
+    # print(test)
+    # print(train)
+
+    # train = np.array([i for i in range(image_size * 7)], np.dtype(int)) % image_size < separate
+    # test = np.array([i for i in range(image_size * 7)], np.dtype(int)) % image_size >= separate
     y = np.array([i for i in range(1, 8) for j in range(image_size)])
     X_train = feats[train]
     X_test = feats[test]
     y_train = y[train]
     y_test = y[test]
+    # print(test)
+    # print(train)
+    # print(sets[:separate])
     return X_train, X_test, y_train, y_test
 
 
