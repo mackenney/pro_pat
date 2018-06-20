@@ -97,7 +97,7 @@ def generate_labels(lbp_grids, har_grids, gab_grids1, gab_grids2):
     return lab
 
 
-def red_routine_per_batch2(X, pca_ratio=.99, cantidad = 240):
+def red_routine_per_batch2(X, separate_ratio, pca_ratio=.99, cantidad = 240):
     """
     Takes a batch of features and expands them with kpca and pca. then performs a RFECV selection.
     :param X:
@@ -109,12 +109,12 @@ def red_routine_per_batch2(X, pca_ratio=.99, cantidad = 240):
     :return: X_tr, X_te, index
     """
     n = len(X[0])
-    X_tr, X_te, y_tr, y_te = lib_pat.separate_train_test(X, cantidad)
+    X_tr, X_te, y_tr, y_te = lib_pat.separate_train_test(X, separate_ratio, cantidad)
     pca_tr, pca_te = lib_pat.dim_red_auto_PCA(X_tr, X_te, pca_ratio)
     return pca_tr, pca_te
 
 
-def reduction_routine(feats, labels, ratio=.99, ammount = 240):
+def reduction_routine(feats, labels, separate_ratio, ratio=.99, ammount = 240):
     """
     Reduces the number of features by appling PCA to every set of features for every window.
     :param feats:
@@ -135,7 +135,7 @@ def reduction_routine(feats, labels, ratio=.99, ammount = 240):
         if np.count_nonzero(index) == 0:
             continue
         X = feats[:, index]
-        tr, te = red_routine_per_batch2(X, ratio, ammount)
+        tr, te = red_routine_per_batch2(X, separate_ratio, ratio, ammount)
         f_tr.append(tr)
         f_te.append(te)
     # print(" ")
@@ -205,7 +205,7 @@ if __name__ == '__main__':
     print('Removing features with low variance')
     feats, labels = lib_pat.delete_zero_variance_features(feats, labels, 0.1)
     print('Separating Features...')
-    X_tr, X_te, y_tr, y_te = lib_pat.separate_train_test(feats, cantidad)
+    X_tr, X_te, y_tr, y_te = lib_pat.separate_train_test(feats, 0.8, cantidad)
 
     print('Reducing features by transformation')
     X_tr, X_te = reduction_routine(feats, labels, .99, cantidad)

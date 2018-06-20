@@ -1,4 +1,5 @@
 import time
+import sys
 
 import multiprocessing as mp
 import numpy as np
@@ -26,6 +27,22 @@ import mahotas
 import cv2
 
 debug = True
+
+def progress(count, total, status='', up=True):
+    bar_len = 60
+    filled_len = int(round(bar_len * count / float(total)))
+
+    percents = round(100.0 * count / float(total), 1)
+    bar = '=' * filled_len + '-' * (bar_len - filled_len)
+    if (not up):
+        data_on_first_line = '\n'
+        sys.stdout.write(data_on_first_line)
+    sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
+    sys.stdout.flush()  
+    if (not up):
+        CURSOR_UP_ONE = '\x1b[1A' 
+        data_on_first_line = CURSOR_UP_ONE 
+        sys.stdout.write(data_on_first_line)
 
 
 def get_LBP(image_array, radius=1, grid_size=1, j=10):
@@ -710,8 +727,9 @@ def classification_LDA(X_tr, X_te, y_tr, y_te, solver='lsqr'):
         lda = LDA(solver=solver, shrinkage='auto')
     lda.fit(X_tr, y_tr)
     results = lda.predict(X_te)
-    print('accuracy:', lda.score(X_te, y_te))
-    return results
+    score = lda.score(X_te, y_te)
+    print('accuracy:', score)
+    return results, score
 
 def classification_MLP(X_tr, X_te, y_tr, y_te, solver='lbfgs'):
     """
@@ -729,22 +747,23 @@ def classification_MLP(X_tr, X_te, y_tr, y_te, solver='lbfgs'):
     mlp = MLPClassifier(hidden_layer_sizes=(50, ), activation='logistic', solver='adam', alpha=0.0001, batch_size='auto', learning_rate='constant', learning_rate_init=0.001, power_t=0.5, max_iter=200, shuffle=True, random_state=None, tol=0.0001, verbose=False, warm_start=False, momentum=0.9, nesterovs_momentum=True, early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
     mlp.fit(X_tr, y_tr)
     results = mlp.predict(X_te)
-    print('accuracy:', mlp.score(X_te, y_te))
-    return results
+    score = mlp.score(X_te, y_te)
+    print('accuracy:', score)
+    return results, score
 
 
 
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-def separate_train_test(feats, image_size=240):
+def separate_train_test(feats, separate_ratio, image_size=240):
     """
     Separates the database in training and testing groups. Also labels the pictures.
     :param feats: Feature matrix
     :return: X_train, X_test, y_train, y_test
     """
-    separate = round(image_size * 0.9)
-    separate2 = round(image_size * 0.9 * 7)
+    separate = round(image_size * separate_ratio)
+    separate2 = round(image_size * separate_ratio * 7)
     sets = np.arange(image_size * 7)
     # print(sets)
     np.random.shuffle(sets)
@@ -766,11 +785,11 @@ def separate_train_test(feats, image_size=240):
     # print("AAAA")
     test = np.array(test)
     train = np.array(train)
-    # print(test)
-    # print(train)
 
     # train = np.array([i for i in range(image_size * 7)], np.dtype(int)) % image_size < separate
     # test = np.array([i for i in range(image_size * 7)], np.dtype(int)) % image_size >= separate
+    # print(image_size)
+    # print(separate2)
     y = np.array([i for i in range(1, 8) for j in range(image_size)])
     X_train = feats[train]
     X_test = feats[test]
@@ -892,7 +911,7 @@ def feat_parameter_test_routine_1():
         index = np.array(range(int((n ** 2) * (i * 59)), int((n ** 2) * ((i + 1) * 59))), np.dtype(int))
         if i == 0: print(len(index) * 2 * 10)
         matrix = feats[:, index]
-        X_train, X_test, y_tr, y_te = separate_train_test(matrix)
+        X_train, X_test, y_tr, y_te = separate_train_test(matrix, 0.8)
         X_tr, X_te = dim_red_auto_PCA(X_train, X_test, .995)
         print(dist_tuple[i])
         k = classification_knn(X_tr, X_te, y_tr, y_te, 3)
@@ -912,7 +931,7 @@ def feat_parameter_test_routine_2():
         index = np.array(range(int((n ** 2) * (i * 52)), int((n ** 2) * ((i + 1) * 52))), np.dtype(int))
         if i == 0: print(len(index) * 2 * 10)
         matrix = feats[:, index]
-        X_train, X_test, y_tr, y_te = separate_train_test(matrix)
+        X_train, X_test, y_tr, y_te = separate_train_test(matrix, 0.8)
         X_tr, X_te = dim_red_auto_PCA(X_train, X_test, .99)
         print(dist_tuple[i])
         k = classification_knn(X_tr, X_te, y_tr, y_te, 3)
@@ -933,7 +952,7 @@ def feat_parameter_test_routine_3():
         index = np.array(range(int((n ** 2) * (i * 96)), int((n ** 2) * ((i + 1) * 96))), np.dtype(int))
         if i == 0: print(len(index) * 2 * 10)
         matrix = feats[:, index]
-        X_train, X_test, y_tr, y_te = separate_train_test(matrix)
+        X_train, X_test, y_tr, y_te = separate_train_test(matrix, 0.8)
         X_tr, X_te = dim_red_auto_PCA(X_train, X_test, .99)
         print(dist_tuple[i])
         k = classification_knn(X_tr, X_te, y_tr, y_te, 3)
@@ -954,7 +973,7 @@ def feat_parameter_test_routine_4():
         index = np.array(range(int((n ** 2) * (i * 192)), int((n ** 2) * ((i + 1) * 192))), np.dtype(int))
         if i == 0: print(len(index) * 2 * 10)
         matrix = feats[:, index]
-        X_train, X_test, y_tr, y_te = separate_train_test(matrix)
+        X_train, X_test, y_tr, y_te = separate_train_test(matrix, 0.8)
         X_tr, X_te = dim_red_auto_PCA(X_train, X_test, .99)
         print(dist_tuple[i])
         k = classification_knn(X_tr, X_te, y_tr, y_te, 3)
