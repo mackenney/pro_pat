@@ -107,11 +107,12 @@ def classify(feats, cantidad, iterations, separate_ratio):
 	lda_scores = []
 	mlp_scores = []
 	for i in range(iterations):
+		print('Classification Nº {}/{}'.format((i + 1), iterations))
 		print('Separating Features...')
-		X_tr, X_te, y_tr, y_te = lib_pat.separate_train_test(feats, separate_ratio, cantidad)
+		X_tr, X_te, y_tr, y_te, sep_list = lib_pat.separate_train_test(feats, separate_ratio, cantidad)
 
 		print('Reducing features by transformation')
-		# X_tr, X_te = main.reduction_routine(feats, labels, separate_ratio, .99, cantidad)
+		X_tr, X_te = main.reduction_routine(feats, labels, separate_ratio, .99, cantidad, separate_list = sep_list)
 		print('Final reduction (for no colinear features)')
 		X_tr, X_te = lib_pat.dim_red_auto_PCA(X_tr, X_te, ratio=.9)
 
@@ -123,8 +124,8 @@ def classify(feats, cantidad, iterations, separate_ratio):
 		k2, k2_score = lib_pat.classification_LDA(X_tr, X_te, y_tr, y_te)
 		mlp_scores.append(k2_score)
 
-		# np.savetxt('k1', CM(y_te, k1), fmt='%2i', delimiter=',')
-		# np.savetxt('k2', CM(y_te, k2), fmt='%2i', delimiter=',')
+		np.savetxt('k1', CM(y_te, k1), fmt='%2i', delimiter=',')
+		np.savetxt('k2', CM(y_te, k2), fmt='%2i', delimiter=',')
 	lda_mean = sum(lda_scores) / float(len(lda_scores))
 	print('LDA mean accuracy:', lda_mean)
 	mlp_mean = sum(mlp_scores) / float(len(mlp_scores))
@@ -208,12 +209,12 @@ def get_feats(number_of_features):
 	print("")
 	return (feats)
 
-start = 1901
-end = 2012
-# end = 240
-extract(start, end)
+# start = 1901
+# end = 2012
+# end = 2012
+# extract(start, end)
 # feats = get_feats(end)
-# classify(feats, end, 10, 0.85)
+# classify(feats, end, 1, 0.85)
 
 # start = 1
 # end = 5
@@ -225,25 +226,18 @@ extract(start, end)
 
 
 
+# import matplotlib.pyplot as plt
+# import seaborn as sns
 
+# # matrix =[[205, 66, 7, 5, 1, 2, 2], [92, 167, 
+# # 34, 1, 2, 6, 2], [2,17,178,71,21,14, 6], [2, 5,70,136,66,19, 4], [0, 0,20,71,158,38, 6],[0, 2,13,10,47,185,46],[0, 1, 5, 1, 6,49,252]]  
+# # sns.heatmap(matrix, annot=True, cmap="Reds", fmt="d")
+# # plt.show()
 
-# path = './proyecto_features/*.npy'    
-# files = glob.glob(path) 
-# for name in files:
-# 	print(name)
-# 	if (name == "./proyecto_features/very_huge_raw_features.npy"):
-# 		feat = np.load(name)
-# 		print(len(feat))
-# 		print(len(feat[0]))
-# 		# print(len(feat[1]))
-# 		print("0")
-# 		print(feat[0])
-# 		print("1")
-# 		print(feat[1])
-# 		print("FEAT")
-# 		print(feat)
-
-
+# matrix =[[196,73, 8, 5, 2, 2, 2], [92,159,34, 5, 4, 7, 3], [4,16,166,70,27,18, 8], [3, 5,73,136,61,21, 3], 
+# [0, 2,16,70,162,39, 4],[1, 3,10,15,42,190,42],[0, 1, 5, 3, 9,49,247]]  
+# sns.heatmap(matrix, annot=True, cmap="Reds", fmt="d")
+# plt.show()
 
 
 
