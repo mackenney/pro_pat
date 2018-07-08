@@ -9,74 +9,6 @@ import os
 import librerias_patrones as lib_pat
 
 
-def get_landmarks(input, show_image=False):
-    """
-    Takes an image and returns an array of facial landmarks and boundbox (x, y, w, h)
-    :param input:
-    :return:
-    """
-    if type(input) == str:
-        im = cv2.imread(input)
-        if im.shape[2] == 3:
-            image = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-        else:
-            image = im
-    elif isinstance(input, np.ndarray):
-        im = input
-        if im.shape[2] == 3:
-            image = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-        else:
-            image = im
-    shape_predictor = 'shape_predictor_68_face_landmarks.dat'
-    detector = dlib.get_frontal_face_detector()
-    predictor = dlib.shape_predictor(shape_predictor)
-    gray = image
-    # detect faces in the grayscale image
-    rects = detector(gray, 1)
-    if len(rects) == 0:
-        # foto entera es el rectangulo
-        rectangle = None
-        rectangle = dlib.rectangle(0, 0, image.shape[1], image.shape[0])
-    elif len(rects) == 1:
-        # ok
-        rectangle = rects[0]
-    else:
-        # Ahora se elige el más grande.
-        sizes = []
-        for r in rects:
-            (x, y, w, h) = face_utils.rect_to_bb(r)
-            sizes.append(w * h)
-        rectangle = rects[np.argmax(sizes)]
-    rect = rectangle
-    # determine the facial landmarks for the face region, then convert the facial landmark (x, y)-coordinates to a
-    # NumPy array
-    shape = predictor(gray, rect)
-    shape = face_utils.shape_to_np(shape)
-    # convert dlib's rectangle to a OpenCV-style bounding box
-    # [i.e., (x, y, w, h)], then draw the face bounding box
-    (x, y, w, h) = face_utils.rect_to_bb(rect)
-    if show_image:
-        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        # show the face number
-        cv2.putText(image, "Face", (x - 10, y - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-        # loop over the (x, y)-coordinates for the facial landmarks
-        # and draw them on the image
-        for (x, y) in shape:
-            cv2.circle(image, (x, y), 1, (0, 0, 255), -1)
-        # show the output image with the face detections + facial landmarks
-        cv2.imshow("Output", image)
-        cv2.waitKey(0)
-    return shape, x, y, w, h
-
-
-def save_landmarks(name):
-    group = int(name[-13:-10])
-    number = int(name[-9:-4])
-    landmarks = get_landmarks(name, False)[0]
-    np.save('./landmarks/face_{}_{}.png'.format(str(group).zfill(3), str(number).zfill(5)), landmarks)
-
-
 def landmark_ext_routine(img_path, num_index, threads=False):
     """
     Saves in folder the facial landmarks for each image.
@@ -103,13 +35,13 @@ def landmark_ext_routine(img_path, num_index, threads=False):
                 new_names.append(name)
         import multiprocessing as mp
         with mp.Pool() as p:
-            p.map(save_landmarks, new_names)
+            p.map(_save_landmarks, new_names)
     else:
         for name in files:
             group = int(name[-13:-10])
             number = int(name[-9:-4])
             if (number in num_index):
-                landmarks = get_landmarks(name, False)[0]
+                landmarks = _get_landmarks(name, False)[0]
                 np.save('./landmarks/face_{}_{}.png'.format(str(group).zfill(3), str(number).zfill(5)), landmarks)
 
 
@@ -117,8 +49,8 @@ def crop_landmark(image, landmarks, part, slack=0., show_crop=False):
     """
     Returns an image from a selected landmark
     part =
-    0 left ceja
-    1 right ceja
+    0 left eyebrow
+    1 right eyebrow
     2 nose
     3 left eye
     4 right eye
@@ -143,7 +75,6 @@ def crop_landmark(image, landmarks, part, slack=0., show_crop=False):
     elif (part == "mouth" or part == 5):
         rango = range(48, 68)
 
-
     landmarks = np.array(landmarks)
     rango = np.array(rango)
     x_max = landmarks[rango, 0].max()
@@ -165,9 +96,9 @@ def crop_landmark(image, landmarks, part, slack=0., show_crop=False):
     return landmark
 
 
-def extract_landmarks_feats_with_threads(index, feature):
+def extract_landmarks_feats_with_threads(index, feature, overwrite=False):
     """
-    With threads
+    extract a feature from landmarks crops from images with matching index using threads and saves them automatically
     :param index: numbers to consider
     :param feature: 0,1,2 = lbp, har, tas
     :return:
@@ -206,7 +137,7 @@ def extract_landmarks_feats_with_threads(index, feature):
     for name in files:
         img = Image(name)
         feat_path = feat_path_prefix + str(img.group).zfill(3) + "_" + str(img.number).zfill(5)
-        if img.number in index and (not os.path.isfile(feat_path.format('eyebrowL') + '.npy')):
+        if img.number in index and (overwrite or (not os.path.isfile(feat_path.format('eyebrowL') + '.npy'))):
             try:
                 names.append(img)
                 images.append(cv2.imread(name, 0))
@@ -254,7 +185,6 @@ def extract_landmarks_feats_with_threads(index, feature):
                     par.append(i)
             params = tuple(par)
 
-
         print('extracting features...')
         lb_features = p.starmap(_ext, [(lb_crops[k], params, feature) for k in range(len(lb_crops))])
         print('1/6')
@@ -281,6 +211,31 @@ def extract_landmarks_feats_with_threads(index, feature):
         np.save(feat_path.format('eyeL'), le_features[k])
         np.save(feat_path.format('eyeR'), re_features[k])
         np.save(feat_path.format('mouth'), mo_features[k])
+
+
+def show_landmarks():
+    """
+    Shows the images with the landmark points marked
+    :param num_index:
+    :return:
+    """
+    path = './landmarks/*.npy'
+    files = glob.glob(path)
+    for name in files:
+        lm = np.load(name)
+        img_name = name.replace('landmarks', 'faces').replace('.npy', '')
+        image = cv2.imread(img_name)
+        for i in range(len(lm)):
+            try:
+                # image[lm[i][1]][lm[i][0]] = 0
+                cv2.circle(image, (lm[i][0], lm[i][1]), 1, (0, 0, 255), -1)
+            except IndexError:
+                pass
+        cv2.imshow('Image', image)
+        cv2.waitKey(5000)
+
+
+# Deprecated and hidden for internal use. #
 
 
 def extract_landmarks_feats_lbp(start, end):
@@ -450,23 +405,6 @@ def extract_landmarks_feats_tas(start, end):
     print("")
 
 
-def show_landmarks(num_index):
-    path = './landmarks/*.npy'
-    files = glob.glob(path)
-    for name in files:
-        lm = np.load(name)
-        img_name = name.replace('landmarks', 'faces').replace('.npy', '')
-        image = cv2.imread(img_name)
-        for i in range(len(lm)):
-            try:
-                # image[lm[i][1]][lm[i][0]] = 0
-                cv2.circle(image, (lm[i][0], lm[i][1]), 1, (0, 0, 255), -1)
-            except IndexError:
-                pass
-        cv2.imshow('Image', image)
-        cv2.waitKey(5000)
-
-
 def _ext(image, dists, feat):
     """
     helper function
@@ -492,24 +430,104 @@ def _ext(image, dists, feat):
         return np.concatenate(f)
 
 
+def _get_landmarks(input, show_image=False):
+    """
+    Takes an image and returns an array of facial landmarks and boundbox (x, y, w, h)
+    :param input:
+    :return:
+    """
+    if type(input) == str:
+        im = cv2.imread(input)
+        if im.shape[2] == 3:
+            image = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+        else:
+            image = im
+    elif isinstance(input, np.ndarray):
+        im = input
+        if im.shape[2] == 3:
+            image = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+        else:
+            image = im
+    shape_predictor = 'shape_predictor_68_face_landmarks.dat'
+    detector = dlib.get_frontal_face_detector()
+    predictor = dlib.shape_predictor(shape_predictor)
+    gray = image
+    # detect faces in the grayscale image
+    rects = detector(gray, 1)
+    if len(rects) == 0:
+        # foto entera es el rectangulo
+        rectangle = None
+        rectangle = dlib.rectangle(0, 0, image.shape[1], image.shape[0])
+    elif len(rects) == 1:
+        # ok
+        rectangle = rects[0]
+    else:
+        # Ahora se elige el más grande.
+        sizes = []
+        for r in rects:
+            (x, y, w, h) = face_utils.rect_to_bb(r)
+            sizes.append(w * h)
+        rectangle = rects[np.argmax(sizes)]
+    rect = rectangle
+    # determine the facial landmarks for the face region, then convert the facial landmark (x, y)-coordinates to a
+    # NumPy array
+    shape = predictor(gray, rect)
+    shape = face_utils.shape_to_np(shape)
+    # convert dlib's rectangle to a OpenCV-style bounding box
+    # [i.e., (x, y, w, h)], then draw the face bounding box
+    (x, y, w, h) = face_utils.rect_to_bb(rect)
+    if show_image:
+        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        # show the face number
+        cv2.putText(image, "Face", (x - 10, y - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        # loop over the (x, y)-coordinates for the facial landmarks
+        # and draw them on the image
+        for (x, y) in shape:
+            cv2.circle(image, (x, y), 1, (0, 0, 255), -1)
+        # show the output image with the face detections + facial landmarks
+        cv2.imshow("Output", image)
+        cv2.waitKey(0)
+    return shape, x, y, w, h
+
+
+def _save_landmarks(name):
+    """
+    From a file name calls _get_landmarks and saves the array.
+    :param name:
+    :return:
+    """
+    group = int(name[-13:-10])
+    number = int(name[-9:-4])
+    landmarks = _get_landmarks(name, False)[0]
+    np.save('./landmarks/face_{}_{}.png'.format(str(group).zfill(3), str(number).zfill(5)), landmarks)
 
 
 if __name__ == '__main__':
-    # landmarks, x, y, w, h = get_landmarks('me1.jpg', True)
+    # landmarks, x, y, w, h = _get_landmarks('me1.jpg', True)
     # im = cv2.imread('me1.jpg')
     # crop_landmark(im, landmarks, 0, 0.1, True)
 
-    # tt = time.time()
-    # landmark_ext_routine(None, np.arange(2012, 2013), True)  # care! must include last one!
-    # print(time.time() - tt)
+    import time
+
+    tt = time.time()
+    print('extracting landmarks...')
+    landmark_ext_routine(None, np.arange(0, 2013), threads=True)  # care! must include last one!
+    print('time taken:', time.time() - tt)
     # quit()
     # show_landmarks(np.arange(150))
 
-    # print('begining lbp...')
-    # extract_landmarks_feats_with_threads(np.arange(2015), 0)
+    tt = time.time()
+    print('begining lbp...')
+    extract_landmarks_feats_with_threads(np.arange(2015), 0, overwrite=True)
+    print('time taken:', time.time() - tt)
 
+    tt = time.time()
     print('begining har...')
-    extract_landmarks_feats_with_threads(np.arange(2015), 1)
+    extract_landmarks_feats_with_threads(np.arange(2015), 1, overwrite=True)
+    print('time taken:', time.time() - tt)
 
-    # print('begining tas...')
-    # extract_landmarks_feats_with_threads(np.arange(2015), 2)
+    tt = time.time()
+    print('begining tas...')
+    extract_landmarks_feats_with_threads(np.arange(2015), 2, overwrite=True)
+    print('time taken:', time.time() - tt)
