@@ -7,6 +7,7 @@ import glob
 from extract_features import *
 import os
 
+
 def get_landmarks(input, show_image=False):
     """
     Takes an image and returns an array of facial landmarks and boundbox (x, y, w, h)
@@ -75,7 +76,6 @@ def save_landmarks(name):
     np.save('./landmarks/face_{}_{}.png'.format(str(group).zfill(3), str(number).zfill(5)), landmarks)
 
 
-
 def landmark_ext_routine(img_path, num_index, threads=False):
     """
     Saves in folder the facial landmarks for each image.
@@ -109,9 +109,7 @@ def landmark_ext_routine(img_path, num_index, threads=False):
             number = int(name[-9:-4])
             if (number in num_index):
                 landmarks = get_landmarks(name, False)[0]
-                np.save('./landmarks/face_{}_{}.png'.format(str(group).zfill(3),str(number).zfill(5)), landmarks)
-
-
+                np.save('./landmarks/face_{}_{}.png'.format(str(group).zfill(3), str(number).zfill(5)), landmarks)
 
 
 def crop_landmark(image, landmarks, part, slack=0, show_crop=False):
@@ -236,13 +234,31 @@ def extract_landmarks(start, end):
     print("")
 
 
+def show_landmarks(num_index):
+    path = './landmarks/*.npy'
+    files = glob.glob(path)
+    for name in files:
+        lm = np.load(name)
+        img_name = name.replace('landmarks', 'faces').replace('.npy', '')
+        image = cv2.imread(img_name)
+        for i in range(len(lm)):
+            try:
+                # image[lm[i][1]][lm[i][0]] = 0
+                cv2.circle(image, (lm[i][0], lm[i][1]), 1, (0, 0, 255), -1)
+            except IndexError:
+                pass
+        cv2.imshow('Image', image)
+        cv2.waitKey(5000)
+
+
 if __name__ == '__main__':
     # landmarks, x, y, w, h = get_landmarks('me1.jpg', True)
     # im = cv2.imread('me1.jpg')
     # crop_landmark(im, landmarks, 0, 0.1, True)
 
-
     import time
-    tt = time.time()
-    landmark_ext_routine(None, np.arange(250, 1000), True)
-    print(time.time()-tt)
+
+    # tt = time.time()
+    # landmark_ext_routine(None, np.arange(250, 1000), True)
+    # print(time.time() - tt)
+    show_landmarks(np.arange(150))
