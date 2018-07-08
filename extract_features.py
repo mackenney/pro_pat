@@ -19,10 +19,10 @@ from sklearn.metrics import confusion_matrix as CM
 #     	data_on_first_line = '\n'
 #     	sys.stdout.write(data_on_first_line)
 #     sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
-#     sys.stdout.flush()  
+#     sys.stdout.flush()
 #     if (not up):
-#     	CURSOR_UP_ONE = '\x1b[1A' 
-#     	data_on_first_line = CURSOR_UP_ONE 
+#     	CURSOR_UP_ONE = '\x1b[1A'
+#     	data_on_first_line = CURSOR_UP_ONE
 #     	sys.stdout.write(data_on_first_line)
 
 class Image:
@@ -99,73 +99,17 @@ def extraction_routine(arr_name, images, lbp_grids, lbp_dists, har_grids, har_di
     return feats
 
 
-def landmark_feat_ext_routine_lbp(arr_name, images, lbp_grids, lbp_dists):
-    """
-      Saves to arr_name .npy the array of features extracted.
-      Params MUST be tuples, use (1,) for single values
-      :param lbp_grids: tuple
-      :param lbp_dists: tuple, must be the same size than ibp_grids
-      :return: void
-      """
-    count = 0
-    total = len(lbp_grids)
-    lbps = []
-    for i in range(len(lbp_grids)):
-        # print('LPB Extraction, Iteration {}/{}'.format((i + 1), len(lbp_grids)))
-        with mp.Pool() as p:
-            lbp = p.starmap(lib_pat.get_LBP, [(images[j], lbp_dists[i], lbp_grids[i], j) for j in range(len(images))])
-        lbps.append(lbp)
-        count += 1
-        # lib_pat.progress(count, total, up=False)
-    lbp_feats = np.concatenate(lbps, axis=1)
-    feats = lbp_feats
-    np.save(arr_name, feats)
-    return feats
-
-
-def landmark_feat_ext_routine_har(arr_name, images, grids, dists):
-    """
-      Saves to arr_name .npy the array of features extracted.
-      Params MUST be tuples, use (1,) for single values
-      :param lbp_grids: tuple
-      :param lbp_dists: tuple, must be the same size than ibp_grids
-      :return: void
-      """
-    count = 0
-    total = len(grids)
-    lbps = []
-    for i in range(len(grids)):
-        with mp.Pool() as p:
-            lbp = p.starmap(lib_pat.get_Haralick, [(images[j], dists[i], grids[i], j) for j in range(len(images))])
-        lbps.append(lbp)
-        count += 1
-        # lib_pat.progress(count, total, up=False)
-    lbp_feats = np.concatenate(lbps, axis=1)
-    feats = lbp_feats
-    np.save(arr_name, feats)
-    return feats
-
-
-def landmark_feat_ext_routine_tas(arr_name, images):
-    """
-      Saves to arr_name .npy the array of features extracted.
-      Params MUST be tuples, use (1,) for single values
-      :param lbp_grids: tuple
-      :param lbp_dists: tuple, must be the same size than ibp_grids
-      :return: void
-      """
-    with mp.Pool() as p:
-        lbp = p.starmap(lib_pat.get_TAS, [(images[j], 1) for j in range(len(images))])
-    feats = lbp
-    np.save(arr_name, feats)
-
-
 def classify(feats, cantidad, iterations, separate_ratio):
     lbp_params = ((1, 1, 2, 2, 5), (5, 10, 8, 15, 6))
     har_params = ((1, 1, 1, 2, 5), (1, 10, 20, 11, 8))
     gab1_params = (1, 2, 5, 10)
     gab2_params = (1, 2, 5, 10)
-    labels = main.generate_labels(lbp_params[0], har_params[0], gab1_params, gab2_params)
+    params_landmarks = (1, 5, 8)
+    labels_image = main.generate_labels(lbp_params[0], har_params[0], gab1_params, gab2_params)
+    labels_landmarks = main.generate_labels_landmarks(labels_image[-1] + 1, params_landmarks, (), params_landmarks)
+    labels = np.concatenate([labels_image, labels_landmarks], axis=0)
+
+    print(labels)
 
     print('Removing features with low variance')
     feats, labels = lib_pat.delete_zero_variance_features(feats, labels, 0.1)
@@ -257,51 +201,51 @@ def get_feats(number_of_features):
         if (img.number <= number_of_features):
             count += 1
             lib_pat.progress(count, total, name)
-            feat = (
+            feats_image = []
+            feats_image.append(
                 np.load("./image_features/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
-            # feats.append(np.load("./image_features/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy")[0])
-            # print("FEAT")
-            # print(feat)
-            feats.append([feat])
-        # if (feats == []):
-        # 	feats = feat
-        # else:
-        # 	feats = np.concatenate((feats, feat))
+            feats_image.append(
+                np.load("./eyebrowL/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
+            feats_image.append(
+                np.load("./eyebrowR/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
+            feats_image.append(
+                np.load("./nose/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
+            feats_image.append(
+                np.load("./eyeL/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
+            feats_image.append(
+                np.load("./eyeR/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
+            feats_image.append(
+                np.load("./mouth/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
+            feats_image.append(
+                np.load("./eyebrowL/tas/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
+            feats_image.append(
+                np.load("./eyebrowR/tas/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
+            feats_image.append(
+                np.load("./nose/tas/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
+            feats_image.append(
+                np.load("./eyeL/tas/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
+            feats_image.append(
+                np.load("./eyeR/tas/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
+            feats_image.append(
+                np.load("./mouth/tas/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
 
-        # print("FEATS")
-        # print(feats)
-        # if (count > 100):
-        # 	break
-
-        # input()
-    feats = np.concatenate(feats, axis=1)
-    feats = feats[0]
+        feat = np.concatenate(feats_image, axis=1)
+        feats.append([feat[0]])
+        feats = np.concatenate(feats, axis=1)
+        feats = feats[0]
     print("")
     return (feats)
 
-# start = 1901
-# end = 2012
-# end = 2012
-# extract(start, end)
-# feats = get_feats(end)
-# classify(feats, end, 1, 0.85)
-
-# start = 1
-# end = 5
-# extract2(start, end)
-# feats = get_feats(end)
-# classify(feats, end)
 
 
-# import matplotlib.pyplot as plt
-# import seaborn as sns
 
-# # matrix =[[205, 66, 7, 5, 1, 2, 2], [92, 167, 
-# # 34, 1, 2, 6, 2], [2,17,178,71,21,14, 6], [2, 5,70,136,66,19, 4], [0, 0,20,71,158,38, 6],[0, 2,13,10,47,185,46],[0, 1, 5, 1, 6,49,252]]  
-# # sns.heatmap(matrix, annot=True, cmap="Reds", fmt="d")
-# # plt.show()
 
-# matrix =[[196,73, 8, 5, 2, 2, 2], [92,159,34, 5, 4, 7, 3], [4,16,166,70,27,18, 8], [3, 5,73,136,61,21, 3], 
-# [0, 2,16,70,162,39, 4],[1, 3,10,15,42,190,42],[0, 1, 5, 3, 9,49,247]]  
-# sns.heatmap(matrix, annot=True, cmap="Reds", fmt="d")
-# plt.show()
+if __name__ == '__main__':
+    # start = 1901
+    # end = 2012
+    end = 240
+    # extract(start, end)
+    feats = get_feats(end)
+    classify(feats, end, 1, 0.85)
+
+
