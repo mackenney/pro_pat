@@ -671,7 +671,11 @@ def delete_zero_variance_features(f, l, tol):
     :param tol: float
     :return: f, l
     """
+    l = np.array(l)
+    f = np.array(f)
+    print(f.shape)
     index = np.std(f, axis=0) > tol
+    print(index)
     print(np.count_nonzero(index == False), "features removed.")
     return f[:, index], l[index]
 

@@ -75,6 +75,7 @@ def generate_labels(lbp_grids, har_grids, gab_grids1, gab_grids2):
     # har 52
     # gab1 96
     # gab2 192
+    # tas 27
     c = 0
     labels = []
     for i in lbp_grids:
@@ -92,6 +93,28 @@ def generate_labels(lbp_grids, har_grids, gab_grids1, gab_grids2):
     for i in gab_grids2:
         for j in range(i ** 2):
             labels.append(c * np.ones(192, np.dtype(int)))
+            c += 1
+    lab = np.concatenate(labels)
+    return lab
+
+
+def generate_labels_landmarks(start_index, lbp_grids, har_grids, tas_grids):
+    # lbp 59
+    # har 52
+    # tas 27
+    c = start_index
+    labels = []
+    for i in lbp_grids:
+        for j in range(i ** 2):
+            labels.append(c * np.ones(59, np.dtype(int)))
+            c += 1
+    for i in har_grids:
+        for j in range(i ** 2):
+            labels.append(c * np.ones(52, np.dtype(int)))
+            c += 1
+    for i in tas_grids:
+        for j in range(i ** 2):
+            labels.append(c * np.ones(27, np.dtype(int)))
             c += 1
     lab = np.concatenate(labels)
     return lab
