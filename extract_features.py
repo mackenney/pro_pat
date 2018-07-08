@@ -5,6 +5,8 @@ import glob
 import numpy as np
 import multiprocessing as mp
 from sklearn.metrics import confusion_matrix as CM
+
+
 # import sys
 
 # def lib_pat.progress(count, total, status='', up=True):
@@ -24,17 +26,18 @@ from sklearn.metrics import confusion_matrix as CM
 #     	sys.stdout.write(data_on_first_line)
 
 class Image:
-	def __init__(self, name, npy=False):
-		self.group = int(name[-13:-10])
-		self.number = int(name[-9:-4])
-		# if npy:
-		# 	print(name[-13:-10])
-		# 	print(name[-9:-4])
-		# 	self.group = int(name[-13:-10])
-		# 	self.number = int(name[-9:-4])
-		# else:
-		# 	self.group = int(name[14:17])
-		# 	self.number = int(name[18:23])
+    def __init__(self, name, npy=False):
+        self.group = int(name[-13:-10])
+        self.number = int(name[-9:-4])
+    # if npy:
+    # 	print(name[-13:-10])
+    # 	print(name[-9:-4])
+    # 	self.group = int(name[-13:-10])
+    # 	self.number = int(name[-9:-4])
+    # else:
+    # 	self.group = int(name[14:17])
+    # 	self.number = int(name[18:23])
+
 
 def extraction_routine(arr_name, images, lbp_grids, lbp_dists, har_grids, har_dists, gab_grids1, gab_grids2):
     """
@@ -158,119 +161,123 @@ def landmark_feat_ext_routine_tas(arr_name, images):
 
 
 def classify(feats, cantidad, iterations, separate_ratio):
-	lbp_params = ((1, 1, 2, 2, 5), (5, 10, 8, 15, 6))
-	har_params = ((1, 1, 1, 2, 5), (1, 10, 20, 11, 8))
-	gab1_params = (1, 2, 5, 10)
-	gab2_params = (1, 2, 5, 10)
-	labels = main.generate_labels(lbp_params[0], har_params[0], gab1_params, gab2_params)
+    lbp_params = ((1, 1, 2, 2, 5), (5, 10, 8, 15, 6))
+    har_params = ((1, 1, 1, 2, 5), (1, 10, 20, 11, 8))
+    gab1_params = (1, 2, 5, 10)
+    gab2_params = (1, 2, 5, 10)
+    labels = main.generate_labels(lbp_params[0], har_params[0], gab1_params, gab2_params)
 
-	print('Removing features with low variance')
-	feats, labels = lib_pat.delete_zero_variance_features(feats, labels, 0.1)
+    print('Removing features with low variance')
+    feats, labels = lib_pat.delete_zero_variance_features(feats, labels, 0.1)
 
-	lda_scores = []
-	mlp_scores = []
-	for i in range(iterations):
-		print('Classification Nº {}/{}'.format((i + 1), iterations))
-		print('Separating Features...')
-		X_tr, X_te, y_tr, y_te, sep_list = lib_pat.separate_train_test(feats, separate_ratio, cantidad)
+    lda_scores = []
+    mlp_scores = []
+    for i in range(iterations):
+        print('Classification Nº {}/{}'.format((i + 1), iterations))
+        print('Separating Features...')
+        X_tr, X_te, y_tr, y_te, sep_list = lib_pat.separate_train_test(feats, separate_ratio, cantidad)
 
-		print('Reducing features by transformation')
-		X_tr, X_te = main.reduction_routine(feats, labels, separate_ratio, .99, cantidad, separate_list = sep_list)
-		print('Final reduction (for no colinear features)')
-		X_tr, X_te = lib_pat.dim_red_auto_PCA(X_tr, X_te, ratio=.9)
+        print('Reducing features by transformation')
+        X_tr, X_te = main.reduction_routine(feats, labels, separate_ratio, .99, cantidad, separate_list=sep_list)
+        print('Final reduction (for no colinear features)')
+        X_tr, X_te = lib_pat.dim_red_auto_PCA(X_tr, X_te, ratio=.9)
 
-		print('Classification via LDA solver=svd')
-		k1, k1_score = lib_pat.classification_LDA(X_tr, X_te, y_tr, y_te, solver='svd')
-		lda_scores.append(k1_score)
+        print('Classification via LDA solver=svd')
+        k1, k1_score = lib_pat.classification_LDA(X_tr, X_te, y_tr, y_te, solver='svd')
+        lda_scores.append(k1_score)
 
-		print('Classification via MLP')
-		k2, k2_score = lib_pat.classification_LDA(X_tr, X_te, y_tr, y_te)
-		mlp_scores.append(k2_score)
+        print('Classification via MLP')
+        k2, k2_score = lib_pat.classification_LDA(X_tr, X_te, y_tr, y_te)
+        mlp_scores.append(k2_score)
 
-		np.savetxt('k1', CM(y_te, k1), fmt='%2i', delimiter=',')
-		np.savetxt('k2', CM(y_te, k2), fmt='%2i', delimiter=',')
-	lda_mean = sum(lda_scores) / float(len(lda_scores))
-	print('LDA mean accuracy:', lda_mean)
-	mlp_mean = sum(mlp_scores) / float(len(mlp_scores))
-	print('MLP mean accuracy:', mlp_mean)
+        np.savetxt('k1', CM(y_te, k1), fmt='%2i', delimiter=',')
+        np.savetxt('k2', CM(y_te, k2), fmt='%2i', delimiter=',')
+    lda_mean = sum(lda_scores) / float(len(lda_scores))
+    print('LDA mean accuracy:', lda_mean)
+    mlp_mean = sum(mlp_scores) / float(len(mlp_scores))
+    print('MLP mean accuracy:', mlp_mean)
 
 
 def extract(start, end):
-	path = './faces/*.png'    
-	files = glob.glob(path) 
-	number_of_features = end - start + 1
+    path = './faces/*.png'
+    files = glob.glob(path)
+    number_of_features = end - start + 1
 
-	lbp_params = ((1, 1, 2, 2, 5), (5, 10, 8, 15, 6))
-	har_params = ((1, 1, 1, 2, 5), (1, 10, 20, 11, 8))
-	gab1_params = (1, 2, 5, 10)
-	gab2_params = (1, 2, 5, 10)
+    lbp_params = ((1, 1, 2, 2, 5), (5, 10, 8, 15, 6))
+    har_params = ((1, 1, 1, 2, 5), (1, 10, 20, 11, 8))
+    gab1_params = (1, 2, 5, 10)
+    gab2_params = (1, 2, 5, 10)
 
-	count = 0
-	bar_len = 60
-	total = number_of_features * 7
-	for name in files: 
-		img = Image(name)
-		if (img.number >= start and img.number <= end):
-			image = cv2.imread(name, 0)
-			lib_pat.progress(count, total, name)
-			extraction_routine("./image_features/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5), 
-												[image], lbp_params[0], lbp_params[1], har_params[0], har_params[1], gab1_params, gab2_params)
-			count += 1
-			# filled_len = int(round(bar_len * count / float(total)))
+    count = 0
+    bar_len = 60
+    total = number_of_features * 7
+    for name in files:
+        img = Image(name)
+        if (img.number >= start and img.number <= end):
+            image = cv2.imread(name, 0)
+            lib_pat.progress(count, total, name)
+            extraction_routine("./image_features/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5),
+                               [image], lbp_params[0], lbp_params[1], har_params[0], har_params[1], gab1_params,
+                               gab2_params)
+            count += 1
+        # filled_len = int(round(bar_len * count / float(total)))
 
-			# percents = round(100.0 * count / float(total), 1)
-			# bar = '=' * filled_len + '-' * (bar_len - filled_len)
+        # percents = round(100.0 * count / float(total), 1)
+        # bar = '=' * filled_len + '-' * (bar_len - filled_len)
 
-			# sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', name))
-			# sys.stdout.flush()
-	print("")
+        # sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', name))
+        # sys.stdout.flush()
+    print("")
 
-def extract2 (start, end):
-	path = './proyecto_features/*.npy'    
-	files = glob.glob(path) 
-	for name in files:
-		if (name == "./proyecto_features/very_huge_raw_features.npy"):
-			feats = np.load(name)
 
-	for i in range(len(feats)):
-		number = (i%240)+1
-		group = (i//240)+1
-		arr_name = "./image_features2/face_" + str(group).zfill(3) + "_" + str(number).zfill(5) + ".npy"
-		np.save(arr_name, np.array([feats[i]]))
+def extract2(start, end):
+    path = './proyecto_features/*.npy'
+    files = glob.glob(path)
+    for name in files:
+        if (name == "./proyecto_features/very_huge_raw_features.npy"):
+            feats = np.load(name)
+
+    for i in range(len(feats)):
+        number = (i % 240) + 1
+        group = (i // 240) + 1
+        arr_name = "./image_features2/face_" + str(group).zfill(3) + "_" + str(number).zfill(5) + ".npy"
+        np.save(arr_name, np.array([feats[i]]))
+
 
 def get_feats(number_of_features):
-	path = './image_features/*.npy'    
-	files = glob.glob(path) 
-	feats = []
-	count = 0
-	bar_len = 60
-	total = number_of_features * 7
-	for name in files:
-		# print(name) 
-		img = Image(name, npy = True)
-		if (img.number <= number_of_features):
-			count += 1
-			lib_pat.progress(count, total, name)
-			feat = (np.load("./image_features/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
-			# feats.append(np.load("./image_features/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy")[0])
-			# print("FEAT")
-			# print(feat)
-			feats.append([feat])
-			# if (feats == []):
-			# 	feats = feat
-			# else:
-			# 	feats = np.concatenate((feats, feat))
+    path = './image_features/*.npy'
+    files = glob.glob(path)
+    feats = []
+    count = 0
+    bar_len = 60
+    total = number_of_features * 7
+    for name in files:
+        # print(name)
+        img = Image(name, npy=True)
+        if (img.number <= number_of_features):
+            count += 1
+            lib_pat.progress(count, total, name)
+            feat = (
+                np.load("./image_features/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
+            # feats.append(np.load("./image_features/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy")[0])
+            # print("FEAT")
+            # print(feat)
+            feats.append([feat])
+        # if (feats == []):
+        # 	feats = feat
+        # else:
+        # 	feats = np.concatenate((feats, feat))
 
-			# print("FEATS")
-			# print(feats)
-			# if (count > 100):
-			# 	break
+        # print("FEATS")
+        # print(feats)
+        # if (count > 100):
+        # 	break
 
-			# input()
-	feats = np.concatenate(feats, axis=1)
-	feats = feats[0]
-	print("")
-	return (feats)
+        # input()
+    feats = np.concatenate(feats, axis=1)
+    feats = feats[0]
+    print("")
+    return (feats)
 
 # start = 1901
 # end = 2012
@@ -286,9 +293,6 @@ def get_feats(number_of_features):
 # classify(feats, end)
 
 
-
-
-
 # import matplotlib.pyplot as plt
 # import seaborn as sns
 
@@ -301,13 +305,3 @@ def get_feats(number_of_features):
 # [0, 2,16,70,162,39, 4],[1, 3,10,15,42,190,42],[0, 1, 5, 3, 9,49,247]]  
 # sns.heatmap(matrix, annot=True, cmap="Reds", fmt="d")
 # plt.show()
-
-
-
-
-
-
-
-
-
-
