@@ -28,6 +28,7 @@ import cv2
 
 debug = True
 
+
 def progress(count, total, status='', up=True):
     bar_len = 60
     filled_len = int(round(bar_len * count / float(total)))
@@ -38,10 +39,10 @@ def progress(count, total, status='', up=True):
         data_on_first_line = '\n'
         sys.stdout.write(data_on_first_line)
     sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
-    sys.stdout.flush()  
+    sys.stdout.flush()
     if (not up):
-        CURSOR_UP_ONE = '\x1b[1A' 
-        data_on_first_line = CURSOR_UP_ONE 
+        CURSOR_UP_ONE = '\x1b[1A'
+        data_on_first_line = CURSOR_UP_ONE
         sys.stdout.write(data_on_first_line)
 
 
@@ -93,7 +94,14 @@ def get_Haralick(im_arr, dist=1, grid_size=1, j=10):
             windows.append(im_grid[i, j])
     haralick_features = []
     for i in range(len(windows)):
-        h = haralick(windows[i], distance=dist)
+        try:
+            h = haralick(windows[i], distance=dist)
+        except ValueError:
+            raise
+            print('error in Haralick!')
+            print(windows[i].shape)
+            print(windows[i])
+            quit()
         h = np.ravel(np.asarray(h))
         haralick_features.append(h)
     out = np.ravel(np.asarray(haralick_features))
@@ -175,28 +183,38 @@ def get_Gab_real_im(img_array, grid_size=1, j=10):
     return out
 
 
-def get_TAS(im_path, grid_size=4):
+def get_TAS(im, grid_size=4):
     """
     Parameterless TAS para una imagen.
     :param im_path:
     :param grid_size:
     :return: 27* grid_size^2 (check)
     """
-    img = mahotas.imread(im_path)
+    if type(im) == str:
+        img = mahotas.imread(im)
+    else:
+        img = im
     window_size = (np.asarray([img.shape])[0:2] / grid_size).astype(int)[0]
-    im_grid = np.asarray(skimage.util.view_as_blocks(img, tuple([window_size[0], window_size[1], 3])))
-    windows = []
-    for i in range(grid_size):
-        for j in range(grid_size):
-            windows.append(im_grid[i, j, 0])
+    if len(img.shape) == 3:
+        im_grid = np.asarray(skimage.util.view_as_blocks(img, tuple([window_size[0], window_size[1], 3])))
+        windows = []
+        for i in range(grid_size):
+            for j in range(grid_size):
+                windows.append(im_grid[i, j, 0])
+    else:
+        im_grid = np.asarray(skimage.util.view_as_blocks(img, tuple(window_size)))
+        windows = []
+        for i in range(grid_size):
+            for j in range(grid_size):
+                windows.append(im_grid[i, j])
     tas_features = []
     for i in range(len(windows)):
-        if (i % 10 == 0):
-            print("|", end = "", flush = True)
+        # if (i % 10 == 0):
+        #     print("|", end="", flush=True)
         t = pftas(windows[i])
         t = np.ravel(np.asarray(t))
         tas_features.append(t)
-    print(" ")
+    # print(" ")
     out = np.ravel(np.asarray(tas_features))
     return out
 
@@ -221,7 +239,7 @@ def get_HoG(im_path, grid_size=4):
     hog_features = []
     for i in range(len(windows)):
         if (i % 10 == 0):
-            print("|", end = "", flush = True)
+            print("|", end="", flush=True)
         hist = hog(windows[i])
         hog_features.append(hist)
     out = np.ravel(np.asarray(hog_features))
@@ -731,6 +749,7 @@ def classification_LDA(X_tr, X_te, y_tr, y_te, solver='lsqr'):
     print('accuracy:', score)
     return results, score
 
+
 def classification_MLP(X_tr, X_te, y_tr, y_te, solver='lbfgs'):
     """
     Multi-layer Perceptron classifier
@@ -742,15 +761,18 @@ def classification_MLP(X_tr, X_te, y_tr, y_te, solver='lbfgs'):
     :param solver:
     :return:
     """
-    
+
     # mlp = MLPClassifier(solver=solver, alpha=1e-5, hidden_layer_sizes=(5, 2), random_state=1)
-    mlp = MLPClassifier(hidden_layer_sizes=(50, ), activation='logistic', solver='adam', alpha=0.0001, batch_size='auto', learning_rate='constant', learning_rate_init=0.001, power_t=0.5, max_iter=200, shuffle=True, random_state=None, tol=0.0001, verbose=False, warm_start=False, momentum=0.9, nesterovs_momentum=True, early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
+    mlp = MLPClassifier(hidden_layer_sizes=(50,), activation='logistic', solver='adam', alpha=0.0001, batch_size='auto',
+                        learning_rate='constant', learning_rate_init=0.001, power_t=0.5, max_iter=200, shuffle=True,
+                        random_state=None, tol=0.0001, verbose=False, warm_start=False, momentum=0.9,
+                        nesterovs_momentum=True, early_stopping=False, validation_fraction=0.1, beta_1=0.9,
+                        beta_2=0.999, epsilon=1e-08)
     mlp.fit(X_tr, y_tr)
     results = mlp.predict(X_te)
     score = mlp.score(X_te, y_te)
     print('accuracy:', score)
     return results, score
-
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -801,7 +823,7 @@ def separate_train_test(feats, separate_ratio, image_size=240):
     return X_train, X_test, y_train, y_test
 
 
-def get_img_names(ammount = 240):
+def get_img_names(ammount=240):
     names_list = [('faces2/face_' + str(i).zfill(3) + '_' + str(j).zfill(5) + '.png')
                   for i in range(1, 8) for j in range(1, ammount + 1)]
     return names_list

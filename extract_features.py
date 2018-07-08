@@ -96,7 +96,7 @@ def extraction_routine(arr_name, images, lbp_grids, lbp_dists, har_grids, har_di
     return feats
 
 
-def landmark_feat_ext_routine(arr_name, images, lbp_grids, lbp_dists):
+def landmark_feat_ext_routine_lbp(arr_name, images, lbp_grids, lbp_dists):
     """
       Saves to arr_name .npy the array of features extracted.
       Params MUST be tuples, use (1,) for single values
@@ -113,11 +113,48 @@ def landmark_feat_ext_routine(arr_name, images, lbp_grids, lbp_dists):
             lbp = p.starmap(lib_pat.get_LBP, [(images[j], lbp_dists[i], lbp_grids[i], j) for j in range(len(images))])
         lbps.append(lbp)
         count += 1
-        lib_pat.progress(count, total, up=False)
+        # lib_pat.progress(count, total, up=False)
     lbp_feats = np.concatenate(lbps, axis=1)
     feats = lbp_feats
     np.save(arr_name, feats)
     return feats
+
+
+def landmark_feat_ext_routine_har(arr_name, images, grids, dists):
+    """
+      Saves to arr_name .npy the array of features extracted.
+      Params MUST be tuples, use (1,) for single values
+      :param lbp_grids: tuple
+      :param lbp_dists: tuple, must be the same size than ibp_grids
+      :return: void
+      """
+    count = 0
+    total = len(grids)
+    lbps = []
+    for i in range(len(grids)):
+        with mp.Pool() as p:
+            lbp = p.starmap(lib_pat.get_Haralick, [(images[j], dists[i], grids[i], j) for j in range(len(images))])
+        lbps.append(lbp)
+        count += 1
+        # lib_pat.progress(count, total, up=False)
+    lbp_feats = np.concatenate(lbps, axis=1)
+    feats = lbp_feats
+    np.save(arr_name, feats)
+    return feats
+
+
+def landmark_feat_ext_routine_tas(arr_name, images):
+    """
+      Saves to arr_name .npy the array of features extracted.
+      Params MUST be tuples, use (1,) for single values
+      :param lbp_grids: tuple
+      :param lbp_dists: tuple, must be the same size than ibp_grids
+      :return: void
+      """
+    with mp.Pool() as p:
+        lbp = p.starmap(lib_pat.get_TAS, [(images[j], 1) for j in range(len(images))])
+    feats = lbp
+    np.save(arr_name, feats)
 
 
 def classify(feats, cantidad, iterations, separate_ratio):
