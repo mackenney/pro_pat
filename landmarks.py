@@ -5,12 +5,13 @@ import dlib
 import cv2
 import glob
 from extract_features import *
+import os
 
 
 class Image:
 	def _init_(self, name, npy=False):
 		self.group = int(name[-13:-10])
-		self.number = int(name[-9:-4])
+		self.number =int(name[-9:-4])
 
 
 def get_landmarks(input, show_image=False):
@@ -38,8 +39,9 @@ def get_landmarks(input, show_image=False):
     # detect faces in the grayscale image
     rects = detector(gray, 1)
     if len(rects) == 0:
-        # ignorar foto
+        # foto entera es el rectangulo
         rectangle = None
+        rectangle = dlib.rectangle(0, 0, image.shape[1], image.shape[0])
     elif len(rects) == 1:
         # ok
         rectangle = rects[0]
@@ -71,6 +73,52 @@ def get_landmarks(input, show_image=False):
         cv2.imshow("Output", image)
         cv2.waitKey(0)
     return shape, x, y, w, h
+
+
+def save_landmarks(name):
+    group = int(name[-13:-10])
+    number = int(name[-9:-4])
+    landmarks = get_landmarks(name, False)[0]
+    np.save('./landmarks/face_{}_{}.png'.format(str(group).zfill(3), str(number).zfill(5)), landmarks)
+
+
+
+def landmark_ext_routine(img_path, num_index, threads=False):
+    """
+    Saves in folder the facial landmarks for each image.
+    :param img_path: image source
+    :param dest_path: array destination
+    :param num_index: index of pictures to look at.
+    :return: void
+    """
+    if img_path is None:
+        path = './faces/*.png'
+    else:
+        path = img_path
+    files = glob.glob(path)
+
+    if not os.path.isdir('./landmarks'):
+        os.mkdir('./landmarks')
+
+    if threads:
+        new_names = []
+        for name in files:
+            group = int(name[-13:-10])
+            number = int(name[-9:-4])
+            if (number in num_index):
+                new_names.append(name)
+        import multiprocessing as mp
+        with mp.Pool() as p:
+            p.map(save_landmarks, new_names)
+    else:
+        for name in files:
+            group = int(name[-13:-10])
+            number = int(name[-9:-4])
+            if (number in num_index):
+                landmarks = get_landmarks(name, False)[0]
+                np.save('./landmarks/face_{}_{}.png'.format(str(group).zfill(3),str(number).zfill(5)), landmarks)
+
+
 
 
 def crop_landmark(image, landmarks, part, slack=0, show_crop=False):
@@ -185,6 +233,12 @@ def extract_landmarks(start, end):
 
 
 if __name__ == '__main__':
-    landmarks, x, y, w, h = get_landmarks('me1.jpg', True)
-    im = cv2.imread('me1.jpg')
-    crop_landmark(im, landmarks, 0, 0.1, True)
+    # landmarks, x, y, w, h = get_landmarks('me1.jpg', True)
+    # im = cv2.imread('me1.jpg')
+    # crop_landmark(im, landmarks, 0, 0.1, True)
+
+
+    import time
+    tt = time.time()
+    landmark_ext_routine(None, np.arange(3, 10), True)
+    print(time.time()-tt)
