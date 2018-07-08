@@ -240,5 +240,5 @@ if __name__ == '__main__':
 
     import time
     tt = time.time()
-    landmark_ext_routine(None, np.arange(3, 10), True)
+    landmark_ext_routine(None, np.arange(10, 100), True)
     print(time.time()-tt)
