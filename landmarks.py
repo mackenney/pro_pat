@@ -7,13 +7,6 @@ import glob
 from extract_features import *
 import os
 
-
-class Image:
-	def _init_(self, name, npy=False):
-		self.group = int(name[-13:-10])
-		self.number =int(name[-9:-4])
-
-
 def get_landmarks(input, show_image=False):
     """
     Takes an image and returns an array of facial landmarks and boundbox (x, y, w, h)
@@ -195,36 +188,47 @@ def extract_landmarks(start, end):
         img = Image(name)
         if (img.number >= start and img.number <= end):
             image = cv2.imread(name, 0)
-            ### LANDMARK METHOD ###
-            landmarks = get_landmarks(img, False)[0]
+            landmarks = np.load("./landmarks/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy")
             lib_pat.progress(count, total, name)
             ### LEFT EYEBROW
             landmark = crop_landmark(image, landmarks, "left eyebrow", slack=0.15)
+            if not os.path.isdir('./eyebrowL'):
+                os.mkdir('./eyebrowL')
             extraction_routine("./eyebrowL/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5),
                                [landmark], lbp_params[0], lbp_params[1], har_params, har_params, gab1_params,
                                gab2_params)
             ### RIGHT EYEBROW
             landmark = crop_landmark(image, landmarks, "right eyebrow", slack=0.15)
+            if not os.path.isdir('./eyebrowR'):
+                os.mkdir('./eyebrowR')
             extraction_routine("./eyebrowR/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5),
                                [landmark], lbp_params[0], lbp_params[1], har_params, har_params, gab1_params,
                                gab2_params)
             ### NOSE
             landmark = crop_landmark(image, landmarks, "nose", slack=0.1)
+            if not os.path.isdir('./nose'):
+                os.mkdir('./nose')
             extraction_routine("./nose/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5),
                                [landmark], lbp_params[0], lbp_params[1], har_params, har_params, gab1_params,
                                gab2_params)
             ### LEFT EYE
             landmark = crop_landmark(image, landmarks, "left eye", slack=0.1)
+            if not os.path.isdir('./eyeL'):
+                os.mkdir('./eyeL')
             extraction_routine("./eyeL/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5),
                                [landmark], lbp_params[0], lbp_params[1], har_params, har_params, gab1_params,
                                gab2_params)
             ### RIGHT EYE
             landmark = crop_landmark(image, landmarks, "right eye", slack=0.1)
-            extraction_routine("./eyeL/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5),
+            if not os.path.isdir('./eyeR'):
+                os.mkdir('./eyeR')
+            extraction_routine("./eyeR/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5),
                                [landmark], lbp_params[0], lbp_params[1], har_params, har_params, gab1_params,
                                gab2_params)
             ### MOUTH
             landmark = crop_landmark(image, landmarks, "mouth", slack=0.1)
+            if not os.path.isdir('./mouth'):
+                os.mkdir('./mouth')
             extraction_routine("./mouth/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5),
                                [landmark], lbp_params[0], lbp_params[1], har_params, har_params, gab1_params,
                                gab2_params)
