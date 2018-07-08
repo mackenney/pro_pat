@@ -37,62 +37,88 @@ class Image:
 		# 	self.number = int(name[18:23])
 
 def extraction_routine(arr_name, images, lbp_grids, lbp_dists, har_grids, har_dists, gab_grids1, gab_grids2):
-  """
-  Saves to arr_name .npy the array of features extracted.
-  Params MUST be tuples, use (1,) for single values
-  :param lbp_grids: tuple
-  :param lbp_dists: tuple, must be the same size than ibp_grids
-  :param har_grids: idem
-  :param har_dists: idem
-  :param gab_grids1: idem
-  :param gab_grids1: idem
-  :return: void
-  """
-  count = 0
-  total = len(lbp_grids) + len(har_grids) + len(gab_grids1) + len(gab_grids2)
-  lbps = []
-  for i in range(len(lbp_grids)):
-    # print('LPB Extraction, Iteration {}/{}'.format((i + 1), len(lbp_grids)))
-    with mp.Pool() as p:
-      lbp = p.starmap(lib_pat.get_LBP, [(images[j], lbp_dists[i], lbp_grids[i], j) for j in range(len(images))])
-    lbps.append(lbp)
-    count += 1
-    lib_pat.progress(count, total, up=False)
-  lbp_feats = np.concatenate(lbps, axis=1)
+    """
+      Saves to arr_name .npy the array of features extracted.
+      Params MUST be tuples, use (1,) for single values
+      :param lbp_grids: tuple
+      :param lbp_dists: tuple, must be the same size than ibp_grids
+      :param har_grids: idem
+      :param har_dists: idem
+      :param gab_grids1: idem
+      :param gab_grids1: idem
+      :return: void
+      """
+    count = 0
+    total = len(lbp_grids) + len(har_grids) + len(gab_grids1) + len(gab_grids2)
+    lbps = []
+    for i in range(len(lbp_grids)):
+        # print('LPB Extraction, Iteration {}/{}'.format((i + 1), len(lbp_grids)))
+        with mp.Pool() as p:
+            lbp = p.starmap(lib_pat.get_LBP, [(images[j], lbp_dists[i], lbp_grids[i], j) for j in range(len(images))])
+        lbps.append(lbp)
+        count += 1
+        lib_pat.progress(count, total, up=False)
+    lbp_feats = np.concatenate(lbps, axis=1)
 
-  hars = []
-  for i in range(len(har_grids)):
-    # print('Haralick Extraction, Iteration {}/{}'.format((i + 1), len(har_grids)))
-    with mp.Pool() as p:
-      har = p.starmap(lib_pat.get_Haralick, [(images[j], har_dists[i], har_grids[i], j) for j in range(len(images))])
-    hars.append(har)
-    count += 1
-    lib_pat.progress(count, total, up=False)
-  har_feats = np.concatenate(hars, axis=1)
+    hars = []
+    for i in range(len(har_grids)):
+        # print('Haralick Extraction, Iteration {}/{}'.format((i + 1), len(har_grids)))
+        with mp.Pool() as p:
+            har = p.starmap(lib_pat.get_Haralick,
+                            [(images[j], har_dists[i], har_grids[i], j) for j in range(len(images))])
+        hars.append(har)
+        count += 1
+        lib_pat.progress(count, total, up=False)
+    har_feats = np.concatenate(hars, axis=1)
 
-  gabs1 = []
-  for i in range(len(gab_grids1)):
-    # print('Gabor Extraction, Iteration {}/{}'.format((i + 1), len(gab_grids1)))
-    with mp.Pool() as p:
-      gab = p.starmap(lib_pat.get_Gab, [(images[j], gab_grids1[i], j) for j in range(len(images))])
-    gabs1.append(gab)
-    count += 1
-    lib_pat.progress(count, total, up=False)
-  gab_feats1 = np.concatenate(gabs1, axis=1)
+    gabs1 = []
+    for i in range(len(gab_grids1)):
+        # print('Gabor Extraction, Iteration {}/{}'.format((i + 1), len(gab_grids1)))
+        with mp.Pool() as p:
+            gab = p.starmap(lib_pat.get_Gab, [(images[j], gab_grids1[i], j) for j in range(len(images))])
+        gabs1.append(gab)
+        count += 1
+        lib_pat.progress(count, total, up=False)
+    gab_feats1 = np.concatenate(gabs1, axis=1)
 
-  gabs2 = []
-  for i in range(len(gab_grids2)):
-    # print('Gabor Extraction, Iteration {}/{}'.format((i + 1), len(gab_grids2)))
-    with mp.Pool() as p:
-      gab = p.starmap(lib_pat.get_Gab_real_im, [(images[j], gab_grids2[i], j) for j in range(len(images))])
-    gabs2.append(gab)
-    count += 1
-    lib_pat.progress(count, total, up=False)
-  gab_feats2 = np.concatenate(gabs2, axis=1)
+    gabs2 = []
+    for i in range(len(gab_grids2)):
+        # print('Gabor Extraction, Iteration {}/{}'.format((i + 1), len(gab_grids2)))
+        with mp.Pool() as p:
+            gab = p.starmap(lib_pat.get_Gab_real_im, [(images[j], gab_grids2[i], j) for j in range(len(images))])
+        gabs2.append(gab)
+        count += 1
+        lib_pat.progress(count, total, up=False)
+    gab_feats2 = np.concatenate(gabs2, axis=1)
 
-  feats = np.concatenate((lbp_feats, har_feats, gab_feats1, gab_feats2), axis=1)
-  np.save(arr_name, feats)
-  return feats
+    feats = np.concatenate((lbp_feats, har_feats, gab_feats1, gab_feats2), axis=1)
+    np.save(arr_name, feats)
+    return feats
+
+
+def landmark_feat_ext_routine(arr_name, images, lbp_grids, lbp_dists):
+    """
+      Saves to arr_name .npy the array of features extracted.
+      Params MUST be tuples, use (1,) for single values
+      :param lbp_grids: tuple
+      :param lbp_dists: tuple, must be the same size than ibp_grids
+      :return: void
+      """
+    count = 0
+    total = len(lbp_grids)
+    lbps = []
+    for i in range(len(lbp_grids)):
+        # print('LPB Extraction, Iteration {}/{}'.format((i + 1), len(lbp_grids)))
+        with mp.Pool() as p:
+            lbp = p.starmap(lib_pat.get_LBP, [(images[j], lbp_dists[i], lbp_grids[i], j) for j in range(len(images))])
+        lbps.append(lbp)
+        count += 1
+        lib_pat.progress(count, total, up=False)
+    lbp_feats = np.concatenate(lbps, axis=1)
+    feats = lbp_feats
+    np.save(arr_name, feats)
+    return feats
+
 
 def classify(feats, cantidad, iterations, separate_ratio):
 	lbp_params = ((1, 1, 2, 2, 5), (5, 10, 8, 15, 6))
