@@ -2,28 +2,11 @@ import librerias_patrones as lib_pat
 import main
 import cv2
 import glob
+import os
 import numpy as np
 import multiprocessing as mp
 from sklearn.metrics import confusion_matrix as CM
 
-
-# import sys
-
-# def lib_pat.progress(count, total, status='', up=True):
-#     bar_len = 60
-#     filled_len = int(round(bar_len * count / float(total)))
-
-#     percents = round(100.0 * count / float(total), 1)
-#     bar = '=' * filled_len + '-' * (bar_len - filled_len)
-#     if (not up):
-#     	data_on_first_line = '\n'
-#     	sys.stdout.write(data_on_first_line)
-#     sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
-#     sys.stdout.flush()
-#     if (not up):
-#     	CURSOR_UP_ONE = '\x1b[1A'
-#     	data_on_first_line = CURSOR_UP_ONE
-#     	sys.stdout.write(data_on_first_line)
 
 class Image:
     def __init__(self, name, npy=False):
@@ -106,17 +89,10 @@ def classify(feats, cantidad, iterations, separate_ratio):
     gab2_params = (1, 2, 5, 10)
     params_landmarks = (1, 5, 8)
     labels_image = main.generate_labels(lbp_params[0], har_params[0], gab1_params, gab2_params)
-    print(labels_image)
-    print(len(labels_image))
-    labels_landmarks = main.generate_labels_landmarks(labels_image[-1] + 1, params_landmarks, (), (1))
-    print(labels_landmarks)
-    print(len(labels_landmarks))
+    labels_landmarks = main.generate_labels_landmarks(labels_image[-1] + 1, params_landmarks, (), params_landmarks)
     labels = np.concatenate([labels_image, labels_landmarks], axis=0)
-    print(labels)
-    print(len(labels))
 
-    # labels = main.generate_labels(lbp_params[0], har_params[0], gab1_params, gab2_params)
-    
+    print(labels)
 
     print('Removing features with low variance')
     feats, labels = lib_pat.delete_zero_variance_features(feats, labels, 0.1)
@@ -129,7 +105,7 @@ def classify(feats, cantidad, iterations, separate_ratio):
         X_tr, X_te, y_tr, y_te, sep_list = lib_pat.separate_train_test(feats, separate_ratio, cantidad)
 
         print('Reducing features by transformation')
-        X_tr, X_te = main.reduction_routine(feats, labels, separate_ratio, .99, cantidad, sep_list)
+        X_tr, X_te = main.reduction_routine(feats, labels, separate_ratio, .99, cantidad, separate_list=sep_list)
         print('Final reduction (for no colinear features)')
         X_tr, X_te = lib_pat.dim_red_auto_PCA(X_tr, X_te, ratio=.9)
 
@@ -147,6 +123,7 @@ def classify(feats, cantidad, iterations, separate_ratio):
     print('LDA mean accuracy:', lda_mean)
     mlp_mean = sum(mlp_scores) / float(len(mlp_scores))
     print('MLP mean accuracy:', mlp_mean)
+
 
 def extract(start, end):
     path = './faces/*.png'
@@ -209,87 +186,37 @@ def get_feats(number_of_features):
             lib_pat.progress(count, total, name)
             feats_image = []
             feats_image.append(
-                [np.load("./image_features/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy")[0]])
+                np.load("./image_features/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
             feats_image.append(
-                [np.load("./eyebrowL/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy")])
+                np.load("./eyebrowL/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
             feats_image.append(
-                [np.load("./eyebrowR/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy")])
+                np.load("./eyebrowR/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
             feats_image.append(
-                [np.load("./nose/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy")])
+                np.load("./nose/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
             feats_image.append(
-                [np.load("./eyeL/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy")])
+                np.load("./eyeL/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
             feats_image.append(
-                [np.load("./eyeR/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy")])
+                np.load("./eyeR/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
             feats_image.append(
-                [np.load("./mouth/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy")])
-            # feats_image.append(
-            #     [np.load("./eyebrowL/tas/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy")])
-            # feats_image.append(
-            #     [np.load("./eyebrowR/tas/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy")])
-            # feats_image.append(
-            #     [np.load("./nose/tas/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy")])
-            # feats_image.append(
-            #     [np.load("./eyeL/tas/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy")])
-            # feats_image.append(
-            #     [np.load("./eyeR/tas/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy")])
-            # feats_image.append(
-            #     [np.load("./mouth/tas/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy")])
+                np.load("./mouth/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
+            feats_image.append(
+                np.load("./eyebrowL/tas/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
+            feats_image.append(
+                np.load("./eyebrowR/tas/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
+            feats_image.append(
+                np.load("./nose/tas/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
+            feats_image.append(
+                np.load("./eyeL/tas/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
+            feats_image.append(
+                np.load("./eyeR/tas/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
+            feats_image.append(
+                np.load("./mouth/tas/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy"))
 
-            for i in range(len(feats_image)):
-                while len(feats_image[i][0]) == 1:
-                    feats_image[i] = feats_image[i][0]
-            try: 
-                feat = np.concatenate(feats_image, axis=1)
-                feats.append([feat])
-            except ValueError: 
-                raise
-    feats = np.concatenate(feats, axis=1)
-    feats = feats[0]
+        feat = np.concatenate(feats_image, axis=1)
+        feats.append([feat[0]])
+        feats = np.concatenate(feats, axis=1)
+        feats = feats[0]
     print("")
-    return (feats)
-
-def get_feats_parts(number_of_features, part):
-    path = './image_features/*.npy'
-    files = glob.glob(path)
-    feats = []
-    count = 0
-    bar_len = 60
-    total = number_of_features * 7
-    for name in files:
-        img = Image(name, npy=True)
-        if (img.number <= number_of_features):
-            count += 1
-            lib_pat.progress(count, total, name)
-            feats_image = []
-            if part == 0:
-                feats_image.append(
-                    [np.load("./eyebrowL/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy")])
-            elif part == 1:
-                feats_image.append(
-                    [np.load("./eyebrowR/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy")])
-            elif part == 2:
-                feats_image.append(
-                    [np.load("./nose/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy")])
-            elif part == 3:
-                feats_image.append(
-                    [np.load("./eyeL/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy")])
-            elif part == 4:
-                feats_image.append(
-                    [np.load("./eyeR/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy")])
-            elif part == 5:
-                feats_image.append(
-                    [np.load("./mouth/lbp/face_" + str(img.group).zfill(3) + "_" + str(img.number).zfill(5) + ".npy")])
-
-            for i in range(len(feats_image)):
-                while len(feats_image[i][0]) == 1:
-                    feats_image[i] = feats_image[i][0]
-            try: 
-                feat = np.concatenate(feats_image, axis=1)
-                feats.append([feat])
-            except ValueError: 
-                raise
-    feats = np.concatenate(feats, axis=1)
-    feats = feats[0]
     return (feats)
 
 def landmark_classifier(feats, cantidad, iterations, separate_ratio):
@@ -328,15 +255,64 @@ def landmark_classifier(feats, cantidad, iterations, separate_ratio):
     print('MLP mean accuracy:', mlp_mean)
 
 
+def get_landmark_feats():
+    landmark_names = ['eyebrowL', 'eyebrowR', 'eyeL', 'eyeR', 'mouth', 'nose']
+    feats = []
+    labs = []
+    for lm in landmark_names:
+        print('now in:', lm)
+        actual_feats, actual_labs = _load_feats_from_folder(lm)
+        feats.append(actual_feats)
+        if len(labs) == 0:
+            m = 0
+        else:
+            m = np.max(labs) + 1
+        labs.append(actual_labs + m)
+    feats = np.concatenate(feats, axis=1)
+    labs = np.concatenate(labs)
+    return feats, labs
+
+
+def _load_feats_from_folder(path):
+    """
+    Returns all the features inside the subfolders of the given path and their labels.
+    :param path:
+    :return:
+    """
+    folders = []
+    if os.path.isdir(path):
+        folders = []
+        for i in os.scandir(path):
+            if os.path.isdir(i):
+                folders.append(i.path)
+    feats = []
+    labs = []
+    counter = 0
+    for f in folders:
+        names = glob.glob(os.path.join(f, '') + '*.npy')
+        names = np.sort(np.array(names))
+        with mp.Pool() as p:
+            actual_feats = p.map(np.load, [names[k] for k in range(len(names))])
+        feats.append(actual_feats)
+        labs.append(counter * np.ones(len(actual_feats[0])))
+        counter += 1
+
+    if len(feats) == 0:
+        print('there is no features to extract!!')
+        print(path)
+        raise ValueError
+    elif len(feats) == 1:
+        return np.array(feats), np.array(labs)
+    else:
+        return np.concatenate(feats, axis=1), np.concatenate(labs)
+
 
 if __name__ == '__main__':
     # start = 1901
     # end = 2012
-    # end = 50
-    # # extract(start, end)
-    # feats = get_feats(end)
-    # classify(feats, end, 1, 0.85)
-    end = 1006
-    feats = get_feats_parts(end, 2)
-    landmark_classifier(feats, end, 10, 0.85)
+    end = 240
+    # extract(start, end)
+    feats = get_feats(end)
+    classify(feats, end, 1, 0.85)
+
 

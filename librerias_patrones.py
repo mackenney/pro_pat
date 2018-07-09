@@ -58,6 +58,10 @@ def get_LBP(image_array, radius=1, grid_size=1, j=10):
     #     print("|", end = "", flush = True)
     p = 8
     img = np.asarray(image_array)
+
+    if img.shape[0] == 0 or img.shape[1] == 0:
+        return np.zeros(59 * (grid_size**2))
+
     window_size = (np.asarray([img.shape]) / grid_size).astype(int)[0]
     im_grid = np.asarray(skimage.util.view_as_blocks(img, tuple(window_size)))
     windows = []

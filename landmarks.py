@@ -77,18 +77,78 @@ def crop_landmark(image, landmarks, part, slack=0., show_crop=False):
 
     landmarks = np.array(landmarks)
     rango = np.array(rango)
-    x_max = landmarks[rango, 0].max()
-    x_min = landmarks[rango, 0].min()
-    y_max = landmarks[rango, 1].max()
-    y_min = landmarks[rango, 1].min()
+    x_max = int(landmarks[rango, 0].max())
+    x_min = int(landmarks[rango, 0].min())
+    y_max = int(landmarks[rango, 1].max())
+    y_min = int(landmarks[rango, 1].min())
 
     x_slack = int(np.ceil((x_max - x_min + 1) * slack))
     y_slack = int(np.ceil((y_max - y_min + 1) * slack))
 
+    if y_max - y_min < 2:
+        y_slack += 1
     if x_max - x_min < 2:
         x_slack += 1
 
-    landmark = image[max(y_min - y_slack, 0):y_max + y_slack, max(x_min - x_slack, 0):x_max[0] + x_slack]
+    landmark = image[max(y_min - y_slack, 0):y_max + y_slack, max(x_min - x_slack, 0):x_max + x_slack]
+
+    if show_crop:
+        cv2.imshow("Image", landmark)
+        cv2.waitKey(15000)
+        # cv2.waitKey(0)
+    return landmark
+
+
+def crop_landmark2(image, landmarks, part, show_crop=False):
+    """
+    Returns an image from a selected landmark.
+    Uses standard size for cropping different landmarks, the windows are forced to be always inside.
+    part =
+    0 left eyebrow
+    1 right eyebrow
+    2 nose
+    3 left eye
+    4 right eye
+    5 mouth
+
+    :param image:
+    :param landmarks:
+    :param part:
+    :param slack:
+    :return:
+    """
+    dims = np.load('landmark_dims.npy')
+
+    if (part == "left eyebrow" or part == 0):
+        rango = range(17, 22)
+        w, h = dims[0] // 2
+    elif (part == "right eyebrow" or part == 1):
+        rango = range(22, 27)
+        w, h = dims[1] // 2
+    elif (part == "nose" or part == 2):
+        rango = range(27, 36)
+        w, h = dims[5] // 2
+    elif (part == "left eye" or part == 3):
+        rango = range(36, 42)
+        w, h = dims[2] // 2
+    elif (part == "right eye" or part == 4):
+        rango = range(42, 48)
+        w, h = dims[3] // 2
+    elif (part == "mouth" or part == 5):
+        rango = range(48, 68)
+        w, h = dims[4] // 2
+
+    landmarks = np.array(landmarks)
+    rango = np.array(rango)
+    x_max = int(landmarks[rango, 0].max())
+    x_min = int(landmarks[rango, 0].min())
+    y_max = int(landmarks[rango, 1].max())
+    y_min = int(landmarks[rango, 1].min())
+
+    X = int(np.mean((x_min, x_max)).round(0))
+    Y = int(np.mean((y_min, y_max)).round(0))
+
+    landmark = _crop_image(image, X, Y, w, h)
     if show_crop:
         cv2.imshow("Image", landmark)
         cv2.waitKey(15000)
@@ -148,18 +208,18 @@ def extract_landmarks_feats_with_threads(index, feature, overwrite=False):
 
     print('Cropping images...')
     with mp.Pool() as p:
-        lb_crops = p.starmap(crop_landmark,
-                             [(images[k], landmarks_points[k], 'left eyebrow', 0.15) for k in range(len(images))])
-        rb_crops = p.starmap(crop_landmark,
-                             [(images[k], landmarks_points[k], 'right eyebrow', 0.15) for k in range(len(images))])
-        no_crops = p.starmap(crop_landmark,
-                             [(images[k], landmarks_points[k], 'nose', 0.15) for k in range(len(images))])
-        le_crops = p.starmap(crop_landmark,
-                             [(images[k], landmarks_points[k], 'left eye', 0.15) for k in range(len(images))])
-        re_crops = p.starmap(crop_landmark,
-                             [(images[k], landmarks_points[k], 'left eye', 0.15) for k in range(len(images))])
-        mo_crops = p.starmap(crop_landmark,
-                             [(images[k], landmarks_points[k], 'mouth', 0.15) for k in range(len(images))])
+        lb_crops = p.starmap(crop_landmark2,
+                             [(images[k], landmarks_points[k], 'left eyebrow') for k in range(len(images))])
+        rb_crops = p.starmap(crop_landmark2,
+                             [(images[k], landmarks_points[k], 'right eyebrow') for k in range(len(images))])
+        no_crops = p.starmap(crop_landmark2,
+                             [(images[k], landmarks_points[k], 'nose') for k in range(len(images))])
+        le_crops = p.starmap(crop_landmark2,
+                             [(images[k], landmarks_points[k], 'left eye') for k in range(len(images))])
+        re_crops = p.starmap(crop_landmark2,
+                             [(images[k], landmarks_points[k], 'right eye') for k in range(len(images))])
+        mo_crops = p.starmap(crop_landmark2,
+                             [(images[k], landmarks_points[k], 'mouth') for k in range(len(images))])
 
         if feat == 'har':
             # check that the distance params are not greater than the min dimension of the crops.
@@ -213,14 +273,18 @@ def extract_landmarks_feats_with_threads(index, feature, overwrite=False):
         np.save(feat_path.format('mouth'), mo_features[k])
 
 
-def show_landmarks():
+def show_landmarks(img_path=None):
     """
     Shows the images with the landmark points marked
     :param num_index:
     :return:
     """
-    path = './landmarks/*.npy'
-    files = glob.glob(path)
+    if img_path is None:
+        path = './landmarks/*.npy'
+        files = glob.glob(path)
+    else:
+        files = [img_path.replace('faces', 'landmarks') + '.npy']
+
     for name in files:
         lm = np.load(name)
         img_name = name.replace('landmarks', 'faces').replace('.npy', '')
@@ -235,7 +299,46 @@ def show_landmarks():
         cv2.waitKey(5000)
 
 
-# Deprecated and hidden for internal use. #
+def show_landmarks2(img_path=None):
+    """
+    Shows the cropped landmarks.
+    :param num_index:
+    :return:
+    """
+    if img_path is None:
+        path = './landmarks/*.npy'
+        files = glob.glob(path)
+    else:
+        files = [img_path.replace('faces', 'landmarks') + '.npy']
+
+    for name in files:
+        # lm = np.load(name)[17:]
+        lm = np.load(name)
+
+        img_name = name.replace('landmarks', 'faces').replace('.npy', '')
+        image = cv2.imread(img_name)
+
+        if not (lm.min() < 0 or lm.max() > np.max(image.shape)):
+            continue
+
+        # for i in range(len(lm)):
+        #     try:
+        #         # image[lm[i][1]][lm[i][0]] = 0
+        #         cv2.circle(image, (lm[i][0], lm[i][1]), 1, (0, 0, 255), -1)
+        #     except IndexError:
+        #         pass
+        # cv2.imshow('Image', image)
+        # cv2.waitKey(5000)
+
+        crop_landmark2(image, lm, 'left eyebrow', show_crop=True)
+        crop_landmark2(image, lm, 'right eyebrow', show_crop=True)
+        crop_landmark2(image, lm, 'left eye', show_crop=True)
+        crop_landmark2(image, lm, 'right eye', show_crop=True)
+        crop_landmark2(image, lm, 'mouth', show_crop=True)
+        crop_landmark2(image, lm, 'nose', show_crop=True)
+
+
+# hidden for internal use. #
 
 
 def _ext(image, dists, feat):
@@ -257,8 +360,11 @@ def _ext(image, dists, feat):
             f.append(lib_pat.get_Haralick(image, d))
         else:
             f.append(lib_pat.get_TAS(image, 1))
+            break
     if len(f) == 1:
         return np.array(f[0])
+    elif len(f) == 0:
+        return 0
     else:
         return np.concatenate(f)
 
@@ -336,6 +442,107 @@ def _save_landmarks(name):
     np.save('./landmarks/face_{}_{}.png'.format(str(group).zfill(3), str(number).zfill(5)), landmarks)
 
 
+def _get_landmarks_dims(landmarks, part, shape):
+    """
+        Returns an image from a selected landmark
+        part =
+        0 left eyebrow
+        1 right eyebrow
+        2 nose
+        3 left eye
+        4 right eye
+        5 mouth
+
+        :param image:
+        :param landmarks:
+        :param part:
+        :param slack:
+        :return:
+        """
+    if (part == "left eyebrow" or part == 0):
+        rango = range(17, 22)
+    elif (part == "right eyebrow" or part == 1):
+        rango = range(22, 27)
+    elif (part == "nose" or part == 2):
+        rango = range(27, 36)
+    elif (part == "left eye" or part == 3):
+        rango = range(36, 42)
+    elif (part == "right eye" or part == 4):
+        rango = range(42, 48)
+    elif (part == "mouth" or part == 5):
+        rango = range(48, 68)
+
+    landmarks = np.array(landmarks)
+    rango = np.array(rango)
+    x_max = int(landmarks[rango, 0].max())
+    x_min = int(landmarks[rango, 0].min())
+    y_max = int(landmarks[rango, 1].max())
+    y_min = int(landmarks[rango, 1].min())
+
+    x_dim = x_max - x_min
+    y_dim = y_max - y_min
+
+    return x_dim, y_dim
+
+
+def _get_landmark_dims_means(img_path=None):
+    """
+    Shows the images with the landmark points marked
+    :param num_index:
+    :return:
+    """
+    if img_path is None:
+        path = './landmarks/*.npy'
+        files = glob.glob(path)
+    else:
+        files = [img_path.replace('faces', 'landmarks') + '.npy']
+
+    lb = []
+    rb = []
+    le = []
+    re = []
+    mo = []
+    no = []
+    for name in files:
+        lm = np.load(name)
+        lb.append(tuple(_get_landmarks_dims(lm, 'left eyebrow')))
+        rb.append(tuple(_get_landmarks_dims(lm, 'right eyebrow')))
+        le.append(tuple(_get_landmarks_dims(lm, 'left eye')))
+        re.append(tuple(_get_landmarks_dims(lm, 'right eye')))
+        mo.append(tuple(_get_landmarks_dims(lm, 'mouth')))
+        no.append(tuple(_get_landmarks_dims(lm, 'nose')))
+
+    lb_mean = np.mean(lb, axis=0)
+    rb_mean = np.mean(rb, axis=0)
+    le_mean = np.mean(le, axis=0)
+    re_mean = np.mean(re, axis=0)
+    mo_mean = np.mean(mo, axis=0)
+    no_mean = np.mean(no, axis=0)
+
+    return lb_mean, rb_mean, le_mean, re_mean, mo_mean, no_mean
+
+
+def _crop_image(im, x, y, w, h):
+    im = np.array(im)
+    im_shape = im.shape
+    w, h = int(w), int(h)
+    x, y = int(x), int(y)
+    xx = y - h, y + h
+    yy = x - w, x + w
+    xx = np.array(xx)
+    yy = np.array(yy)
+    if xx.min() < 0:
+        xx -= xx.min()
+    if xx.max() >= im_shape[0]:
+        xx -= xx.max() - im_shape[0] - 1
+    if yy.min() < 0:
+        yy -= yy.min()
+    if yy.max() >= im_shape[1]:
+        yy -= yy.max() - im_shape[1] - 1
+    crop = im[xx[0]:xx[1], yy[0]:yy[1]]
+    return crop
+
+
 if __name__ == '__main__':
     # landmarks, x, y, w, h = _get_landmarks('me1.jpg', True)
     # im = cv2.imread('me1.jpg')
@@ -343,10 +550,10 @@ if __name__ == '__main__':
 
     import time
 
-    tt = time.time()
-    print('extracting landmarks...')
-    landmark_ext_routine(None, np.arange(0, 2013), threads=True)  # care! must include last one!
-    print('time taken:', time.time() - tt)
+    # tt = time.time()
+    # print('extracting landmarks...')
+    # landmark_ext_routine(None, np.arange(0, 2013), threads=True)  # care! must include last one!
+    # print('time taken:', time.time() - tt)
     # quit()
     # show_landmarks(np.arange(150))
 
@@ -364,3 +571,13 @@ if __name__ == '__main__':
     print('begining tas...')
     extract_landmarks_feats_with_threads(np.arange(2015), 2, overwrite=True)
     print('time taken:', time.time() - tt)
+
+    # a = tuple(_get_landmark_dims_means(None))
+    # mult = np.array([1.1, 1.1, 1.15, 1.15, 1.15, 1.15]).T
+    # mult = np.stack((mult, mult)).T
+    # dims = np.array(a) * mult
+    # dims = dims.round(0).astype(int)
+    # np.save('landmark_dims.npy', dims)
+    # print(dims)
+
+    # show_landmarks2(None)
