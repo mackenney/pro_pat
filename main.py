@@ -98,29 +98,27 @@ def generate_labels(lbp_grids, har_grids, gab_grids1, gab_grids2):
     return lab
 
 
-def generate_labels_landmarks(start_index, lbp_grids, har_grids, tas_grids):
+def generate_labels_landmarks(start_index, landmarks, lbp_grids, har_grids, tas_grids):
     # lbp 59
     # har 52
     # tas 27
     c = start_index
     labels = []
-    for i in lbp_grids:
-        for j in range(i ** 2):
-            labels.append(c * np.ones(59, np.dtype(int)))
-            c += 1
-    for i in har_grids:
-        for j in range(i ** 2):
-            labels.append(c * np.ones(52, np.dtype(int)))
-            c += 1
-    for i in tas_grids:
-        for j in range(i ** 2):
-            labels.append(c * np.ones(27, np.dtype(int)))
-            c += 1
+    for i in range(landmarks*len(lbp_grids)):
+        labels.append(c * np.ones(59, np.dtype(int)))
+        c += 1
+    for i in range(len(har_grids)):
+        labels.append(c * np.ones(52, np.dtype(int)))
+        c += 1
+    # for i in range(6):
+    #     labels.append(c * np.ones(27, np.dtype(int)))
+    #     c += 1
+    # labels.append(c * np.ones(27, np.dtype(int)))
     lab = np.concatenate(labels)
     return lab
 
 
-def red_routine_per_batch2(X, separate_ratio, pca_ratio=.99, cantidad = 240):
+def red_routine_per_batch2(X, separate_ratio, pca_ratio=.99, cantidad = 240, separate_list = []):
     """
     Takes a batch of features and expands them with kpca and pca. then performs a RFECV selection.
     :param X:
@@ -132,12 +130,12 @@ def red_routine_per_batch2(X, separate_ratio, pca_ratio=.99, cantidad = 240):
     :return: X_tr, X_te, index
     """
     n = len(X[0])
-    X_tr, X_te, y_tr, y_te = lib_pat.separate_train_test(X, separate_ratio, cantidad)
+    X_tr, X_te, y_tr, y_te, sep_list = lib_pat.separate_train_test(X, separate_ratio, cantidad, separate_list = separate_list)
     pca_tr, pca_te = lib_pat.dim_red_auto_PCA(X_tr, X_te, pca_ratio)
     return pca_tr, pca_te
 
 
-def reduction_routine(feats, labels, separate_ratio, ratio=.99, ammount = 240):
+def reduction_routine(feats, labels, separate_ratio, ratio=.99, ammount = 240, separate_list = []):
     """
     Reduces the number of features by appling PCA to every set of features for every window.
     :param feats:
@@ -147,6 +145,7 @@ def reduction_routine(feats, labels, separate_ratio, ratio=.99, ammount = 240):
     """
     f_tr = []
     f_te = []
+    print(labels)
     n = np.max(labels) + 1
     # print('feature redution routine...')
     # print("|--------------------------------|")
@@ -158,7 +157,7 @@ def reduction_routine(feats, labels, separate_ratio, ratio=.99, ammount = 240):
         if np.count_nonzero(index) == 0:
             continue
         X = feats[:, index]
-        tr, te = red_routine_per_batch2(X, separate_ratio, ratio, ammount)
+        tr, te = red_routine_per_batch2(X, separate_ratio, ratio, ammount, separate_list = separate_list)
         f_tr.append(tr)
         f_te.append(te)
     # print(" ")
