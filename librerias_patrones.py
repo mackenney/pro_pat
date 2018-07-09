@@ -785,6 +785,20 @@ def classification_MLP(X_tr, X_te, y_tr, y_te, solver='lbfgs'):
 
 # ----------------------------------------------------------------------------------------------------------------------
 
+def hold_out(feats, image_size=240):
+    """
+    Separates the database in training and testing groups. Also labels the pictures.
+    :param feats: Feature matrix
+    :return: X_train, X_test, y_train, y_test
+    """
+    train = (np.array([i for i in range(image_size * 7)], np.dtype(int)) % image_size <= 200) + (np.array([i for i in range(image_size * 7)], np.dtype(int)) % image_size > 240)
+    test = (np.array([i for i in range(image_size * 7)], np.dtype(int)) % image_size > 200) * (np.array([i for i in range(image_size * 7)], np.dtype(int)) % image_size <= 240)
+    y = np.array([i for i in range(1, 8) for j in range(image_size)])
+    X_train = feats[train]
+    X_test = feats[test]
+    y_train = y[train]
+    y_test = y[test]
+    return X_train, X_test, y_train, y_test
 
 # def separate_train_test(feats, separate_ratio, image_size=240):
 #     """

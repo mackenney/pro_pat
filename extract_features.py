@@ -1,4 +1,5 @@
 import librerias_patrones as lib_pat
+import classification
 import main
 import cv2
 import glob
@@ -82,47 +83,54 @@ def extraction_routine(arr_name, images, lbp_grids, lbp_dists, har_grids, har_di
     return feats
 
 
-def classify(feats, cantidad, iterations, separate_ratio):
+def classify(feats, cantidad):
     lbp_params = ((1, 1, 2, 2, 5), (5, 10, 8, 15, 6))
     har_params = ((1, 1, 1, 2, 5), (1, 10, 20, 11, 8))
     gab1_params = (1, 2, 5, 10)
     gab2_params = (1, 2, 5, 10)
     params_landmarks = (1, 5, 8)
     labels_image = main.generate_labels(lbp_params[0], har_params[0], gab1_params, gab2_params)
-    labels_landmarks = main.generate_labels_landmarks(labels_image[-1] + 1, params_landmarks, (), params_landmarks)
+    # print(labels_image)
+    # print(len(labels_image))
+    labels_landmarks = main.generate_labels_landmarks(labels_image[-1] + 1, 6, params_landmarks, (), (1))
+    # print(labels_landmarks)
+    # print(len(labels_landmarks))
     labels = np.concatenate([labels_image, labels_landmarks], axis=0)
+    # print(labels)
+    # print(len(labels))
+
+    # labels = labels_image
 
     print(labels)
 
     print('Removing features with low variance')
     feats, labels = lib_pat.delete_zero_variance_features(feats, labels, 0.1)
 
-    lda_scores = []
-    mlp_scores = []
-    for i in range(iterations):
-        print('Classification Nº {}/{}'.format((i + 1), iterations))
-        print('Separating Features...')
-        X_tr, X_te, y_tr, y_te, sep_list = lib_pat.separate_train_test(feats, separate_ratio, cantidad)
+    print('Separating Features...')
+    X_tr, X_te, y_tr, y_te = lib_pat.hold_out(feats, cantidad)
 
-        print('Reducing features by transformation')
-        X_tr, X_te = main.reduction_routine(feats, labels, separate_ratio, .99, cantidad, separate_list=sep_list)
-        print('Final reduction (for no colinear features)')
-        X_tr, X_te = lib_pat.dim_red_auto_PCA(X_tr, X_te, ratio=.9)
+    print('Reducing features by transformation')
+    X_tr, X_te = main.reduction_routine(feats, labels, .99, cantidad)
+    print('Final reduction (for no colinear features)')
+    X_tr, X_te = lib_pat.dim_red_auto_PCA(X_tr, X_te, ratio=.9)
 
-        print('Classification via LDA solver=svd')
-        k1, k1_score = lib_pat.classification_LDA(X_tr, X_te, y_tr, y_te, solver='svd')
-        lda_scores.append(k1_score)
+    np.save("X_tr_" + str(cantidad), X_tr)
+    np.save("X_te_" + str(cantidad), X_te)
+    np.save("y_tr_" + str(cantidad), y_tr)
+    np.save("y_te_" + str(cantidad), y_te)
 
-        print('Classification via MLP')
-        k2, k2_score = lib_pat.classification_LDA(X_tr, X_te, y_tr, y_te)
-        mlp_scores.append(k2_score)
+    print('Classification via LDA solver=svd')
+    k1, k1_score = lib_pat.classification_LDA(X_tr, X_te, y_tr, y_te, solver='svd')
 
-        np.savetxt('k1', CM(y_te, k1), fmt='%2i', delimiter=',')
-        np.savetxt('k2', CM(y_te, k2), fmt='%2i', delimiter=',')
-    lda_mean = sum(lda_scores) / float(len(lda_scores))
-    print('LDA mean accuracy:', lda_mean)
-    mlp_mean = sum(mlp_scores) / float(len(mlp_scores))
-    print('MLP mean accuracy:', mlp_mean)
+    print('Classification via MLP')
+    k2, k2_score = lib_pat.classification_LDA(X_tr, X_te, y_tr, y_te)
+
+    print('Classification via NN')
+    k3, k3_score = classification.training_and_classification_NN(X_tr, X_te, y_tr, y_te)
+
+    np.savetxt('k1', CM(y_te, k1), fmt='%2i', delimiter=',')
+    np.savetxt('k2', CM(y_te, k2), fmt='%2i', delimiter=',')
+    np.savetxt('k3', CM(y_te, k3), fmt='%2i', delimiter=',')
 
 
 def extract(start, end):
@@ -254,6 +262,25 @@ def landmark_classifier(feats, cantidad, iterations, separate_ratio):
     mlp_mean = sum(mlp_scores) / float(len(mlp_scores))
     print('MLP mean accuracy:', mlp_mean)
 
+def classify_trained(cantidad):
+
+    X_tr = np.load("X_tr_" + str(cantidad) + ".npy")
+    X_te = np.load("X_te_" + str(cantidad) + ".npy")
+    y_tr = np.load("y_tr_" + str(cantidad) + ".npy")
+    y_te = np.load("y_te_" + str(cantidad) + ".npy")
+
+    print('Classification via LDA solver=svd')
+    k1, k1_score = lib_pat.classification_LDA(X_tr, X_te, y_tr, y_te, solver='svd')
+
+    print('Classification via MLP')
+    k2, k2_score = lib_pat.classification_LDA(X_tr, X_te, y_tr, y_te)
+
+    print('Classification via NN')
+    k3, k3_score = classification.training_and_classification_NN(X_tr, X_te, y_tr, y_te)
+
+    np.savetxt('k1', CM(y_te, k1), fmt='%2i', delimiter=',')
+    np.savetxt('k2', CM(y_te, k2), fmt='%2i', delimiter=',')
+    np.savetxt('k3', CM(y_te, k3), fmt='%2i', delimiter=',')
 
 def get_landmark_feats():
     landmark_names = ['eyebrowL', 'eyebrowR', 'eyeL', 'eyeR', 'mouth', 'nose']
@@ -311,8 +338,9 @@ if __name__ == '__main__':
     # start = 1901
     # end = 2012
     end = 240
-    # extract(start, end)
-    feats = get_feats(end)
-    classify(feats, end, 1, 0.85)
+    # # extract(start, end)
+    # feats = get_feats(end)
+    # classify(feats, end)
+    classify_trained(end)
 
 

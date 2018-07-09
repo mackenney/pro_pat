@@ -12,22 +12,25 @@ from sklearn.neural_network import MLPClassifier
 # KERAS NEURAL NETWORK CLASSIFIER
 
 def baseline_estimator(input_dim, activation='relu'):
-    model = Sequential()
-    model.add(Dense(10, input_dim=input_dim, activation=activation))
-    model.add(
-        Dense(7, activation='softmax'))  # 7 classes, with softmax activation
-    # Compile model
-    model.compile(
-        loss='categorical_crossentropy',
-        optimizer='adam',
-        metrics=['accuracy']
-    )
+    def base_model():
+        model = Sequential()
+        model.add(Dense(100, input_dim=input_dim, activation=activation))
+        # model.add(Dense(50, activation=activation))
+        model.add(
+            Dense(7, activation='softmax'))  # 7 classes, with softmax activation
+        # Compile model
+        model.compile(
+            loss='categorical_crossentropy',
+            optimizer='adam',
+            metrics=['accuracy']
+        )
+        return model
     # construct the estimator
     estimator = KerasClassifier(
-        build_fn=model,
-        epochs=200,
+        build_fn=base_model,
+        epochs=100,
         batch_size=5,
-        verbose=0
+        verbose=1
     )
     return estimator
 
