@@ -1,6 +1,6 @@
-from keras.models import Sequential
-from keras.layers import Dense
-from keras.wrappers.scikit_learn import KerasClassifier
+# from keras.models import Sequential
+# from keras.layers import Dense
+# from keras.wrappers.scikit_learn import KerasClassifier
 
 from sklearn.svm import SVC, LinearSVC
 from sklearn.neighbors import KNeighborsClassifier
@@ -11,61 +11,63 @@ from sklearn.neural_network import MLPClassifier
 # ===================================================================
 # KERAS NEURAL NETWORK CLASSIFIER
 
-def baseline_estimator(input_dim, activation='relu'):
-    def base_model():
-        model = Sequential()
-        model.add(Dense(100, input_dim=input_dim, activation=activation))
-        # model.add(Dense(50, activation=activation))
-        model.add(
-            Dense(7, activation='softmax'))  # 7 classes, with softmax activation
-        # Compile model
-        model.compile(
-            loss='categorical_crossentropy',
-            optimizer='adam',
-            metrics=['accuracy']
-        )
-        return model
-    # construct the estimator
-    estimator = KerasClassifier(
-        build_fn=base_model,
-        epochs=100,
-        batch_size=5,
-        verbose=1
-    )
-    return estimator
+# def baseline_estimator(input_dim, activation='relu'):
+#     def base_model():
+#         model = Sequential()
+#         model.add(Dense(100, input_dim=input_dim, activation=activation))
+#         # model.add(Dense(50, activation=activation))
+#         model.add(
+#             Dense(7, activation='softmax'))  # 7 classes, with softmax activation
+#         # Compile model
+#         model.compile(
+#             loss='categorical_crossentropy',
+#             optimizer='adam',
+#             metrics=['accuracy']
+#         )
+#         return model
+#
+#     # construct the estimator
+#     estimator = KerasClassifier(
+#         build_fn=base_model,
+#         epochs=100,
+#         batch_size=5,
+#         verbose=1
+#     )
+#     return estimator
+#
+#
+# def fitted_classifier_NN(X_tr, y_tr, activation='relu'):
+#     """
+#     Return only the trained estimator... it has the methods of any
+#     estimator such as .predict(X_te), .score(X_te, y_te)
+#     :param X_tr: training features
+#     :param X_te: testing features
+#     :param activation: activation function to use in the hidden layers
+#     :return: TRAINED MODEL FROM KERAS
+#     """
+#     estimator = baseline_estimator(X_tr.shape[1], activation)
+#     estimator.fit(X_tr, y_tr)
+#     return estimator
+#
+#
+# def training_and_classification_NN(X_tr, X_te, y_tr, y_te, activation='relu'):
+#     """
+#     Returns the results (predicted classes) and score
+#     :param X_tr: training features
+#     :param X_te: testing features
+#     :param y_tr: training labels (classes)
+#     :param y_te: testing labels (classes)
+#     :param activation: activation function to use in the hidden layers
+#     :return:
+#     """
+#     estimator = fitted_classifier_NN(X_tr, y_tr, activation=activation)
+#
+#     results = estimator.predict(X_te)
+#
+#     score = estimator.score(X_te, y_te)
+#     print('accuracy:', score)
+#     return results, score
 
-
-def fitted_classifier_NN(X_tr, y_tr, activation='relu'):
-    """
-    Return only the trained estimator... it has the methods of any
-    estimator such as .predict(X_te), .score(X_te, y_te)
-    :param X_tr: training features
-    :param X_te: testing features
-    :param activation: activation function to use in the hidden layers
-    :return: TRAINED MODEL FROM KERAS
-    """
-    estimator = baseline_estimator(X_tr.shape[1], activation)
-    estimator.fit(X_tr, y_tr)
-    return estimator
-
-
-def training_and_classification_NN(X_tr, X_te, y_tr, y_te, activation='relu'):
-    """
-    Returns the results (predicted classes) and score
-    :param X_tr: training features
-    :param X_te: testing features
-    :param y_tr: training labels (classes)
-    :param y_te: testing labels (classes)
-    :param activation: activation function to use in the hidden layers
-    :return:
-    """
-    estimator = fitted_classifier_NN(X_tr, y_tr, activation=activation)
-
-    results = estimator.predict(X_te)
-
-    score = estimator.score(X_te, y_te)
-    print('accuracy:', score)
-    return results, score
 
 # ===================================================================
 # KNN CLASSIFIER
@@ -129,6 +131,7 @@ def training_and_classification_SVM(X_tr, X_te, y_tr, y_te, kernel='linear', _C=
     print('accuracy:', svm.score(X_te, y_te))
     return svm.predict(X_te)
 
+
 # ====================================================================
 # LDA ClASSIFIER
 
@@ -162,6 +165,7 @@ def training_and_classification_LDA(X_tr, X_te, y_tr, y_te, solver='lsqr'):
     score = lda.score(X_te, y_te)
     print('accuracy:', score)
     return results, score
+
 
 # ====================================================================
 # SKLEARN MULTI LAYER PERCEPTRON CLASSIFIER

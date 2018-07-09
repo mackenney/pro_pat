@@ -104,7 +104,9 @@ def classify(feats, cantidad):
     print(labels)
 
     print('Removing features with low variance')
-    feats, labels = lib_pat.delete_zero_variance_features(feats, labels, 0.1)
+    rem_var_index = lib_pat.delete_zero_variance_features2(feats, labels, 0.1)
+    np.save('rem_var_index.npy', rem_var_index)
+    feats, labels = feats[:, rem_var_index], labels[:, rem_var_index]
 
     print('Separating Features...')
     X_tr, X_te, y_tr, y_te = lib_pat.hold_out(feats, cantidad)
@@ -227,6 +229,7 @@ def get_feats(number_of_features):
     print("")
     return (feats)
 
+
 def landmark_classifier(feats, cantidad, iterations, separate_ratio):
     params_landmarks = (1, 5, 8)
     labels_landmarks = main.generate_labels_landmarks(0, 1, params_landmarks, (), (1))
@@ -262,8 +265,8 @@ def landmark_classifier(feats, cantidad, iterations, separate_ratio):
     mlp_mean = sum(mlp_scores) / float(len(mlp_scores))
     print('MLP mean accuracy:', mlp_mean)
 
-def classify_trained(cantidad):
 
+def classify_trained(cantidad):
     X_tr = np.load("X_tr_" + str(cantidad) + ".npy")
     X_te = np.load("X_te_" + str(cantidad) + ".npy")
     y_tr = np.load("y_tr_" + str(cantidad) + ".npy")
@@ -282,6 +285,7 @@ def classify_trained(cantidad):
     np.savetxt('k2', CM(y_te, k2), fmt='%2i', delimiter=',')
     np.savetxt('k3', CM(y_te, k3), fmt='%2i', delimiter=',')
 
+
 def get_landmark_feats():
     landmark_names = ['eyebrowL', 'eyebrowR', 'eyeL', 'eyeR', 'mouth', 'nose']
     feats = []
@@ -298,6 +302,16 @@ def get_landmark_feats():
     feats = np.concatenate(feats, axis=1)
     labs = np.concatenate(labs)
     return feats, labs
+
+
+def get_standard_feats():
+    path = 'image_features'
+    names = glob.glob(os.path.join(path, '') + '*.npy')
+    names = np.sort(np.array(names))
+    with mp.Pool() as p:
+        actual_feats = p.map(np.load, [names[k] for k in range(len(names))])
+    f = np.stack(actual_feats)
+    return f, np.load('standard_labels.npy')
 
 
 def _load_feats_from_folder(path):
@@ -341,6 +355,7 @@ if __name__ == '__main__':
     # # extract(start, end)
     # feats = get_feats(end)
     # classify(feats, end)
-    classify_trained(end)
+    # classify_trained(end)
 
-
+    f, l = get_standard_feats()
+    np.save('standard_feats', f)

@@ -60,7 +60,7 @@ def get_LBP(image_array, radius=1, grid_size=1, j=10):
     img = np.asarray(image_array)
 
     if img.shape[0] == 0 or img.shape[1] == 0:
-        return np.zeros(59 * (grid_size**2))
+        return np.zeros(59 * (grid_size ** 2))
 
     window_size = (np.asarray([img.shape]) / grid_size).astype(int)[0]
     im_grid = np.asarray(skimage.util.view_as_blocks(img, tuple(window_size)))
@@ -684,6 +684,23 @@ def delete_zero_variance_features(f, l, tol):
     return f[:, index], l[index]
 
 
+def delete_zero_variance_features2(f, l, tol):
+    """
+    Removes features with std below threshold
+    :param f: features matrix
+    :param l: labels
+    :param tol: float
+    :return: f, l
+    """
+    l = np.array(l)
+    f = np.array(f)
+    # print(f.shape)
+    index = np.std(f, axis=0) > tol
+    # print(index)
+    # print(np.count_nonzero(index == False), "features removed.")
+    return index
+
+
 def feature_variance_trim(f, l, r_to_trim):
     """
     Trims the r% of features of less variance
@@ -791,14 +808,17 @@ def hold_out(feats, image_size=240):
     :param feats: Feature matrix
     :return: X_train, X_test, y_train, y_test
     """
-    train = (np.array([i for i in range(image_size * 7)], np.dtype(int)) % image_size <= 200) + (np.array([i for i in range(image_size * 7)], np.dtype(int)) % image_size > 240)
-    test = (np.array([i for i in range(image_size * 7)], np.dtype(int)) % image_size > 200) * (np.array([i for i in range(image_size * 7)], np.dtype(int)) % image_size <= 240)
+    train = (np.array([i for i in range(image_size * 7)], np.dtype(int)) % image_size <= 200) + (
+                np.array([i for i in range(image_size * 7)], np.dtype(int)) % image_size > 240)
+    test = (np.array([i for i in range(image_size * 7)], np.dtype(int)) % image_size > 200) * (
+                np.array([i for i in range(image_size * 7)], np.dtype(int)) % image_size <= 240)
     y = np.array([i for i in range(1, 8) for j in range(image_size)])
     X_train = feats[train]
     X_test = feats[test]
     y_train = y[train]
     y_test = y[test]
     return X_train, X_test, y_train, y_test
+
 
 # def separate_train_test(feats, separate_ratio, image_size=240):
 #     """

@@ -223,6 +223,8 @@ if __name__ == '__main__':
         quit()
 
     labels = generate_labels(lbp_params[0], har_params[0], gab1_params, gab2_params)
+    # np.save('standard_labels', labels)
+    # quit()
 
     print('Removing features with low variance')
     feats, labels = lib_pat.delete_zero_variance_features(feats, labels, 0.1)
