@@ -673,9 +673,9 @@ def delete_zero_variance_features(f, l, tol):
     """
     l = np.array(l)
     f = np.array(f)
-    print(f.shape)
+    # print(f.shape)
     index = np.std(f, axis=0) > tol
-    print(index)
+    # print(index)
     print(np.count_nonzero(index == False), "features removed.")
     return f[:, index], l[index]
 
@@ -782,17 +782,65 @@ def classification_MLP(X_tr, X_te, y_tr, y_te, solver='lbfgs'):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-def separate_train_test(feats, separate_ratio, image_size=240):
+# def separate_train_test(feats, separate_ratio, image_size=240):
+#     """
+#     Separates the database in training and testing groups. Also labels the pictures.
+#     :param feats: Feature matrix
+#     :return: X_train, X_test, y_train, y_test
+#     """
+#     separate = round(image_size * separate_ratio)
+#     separate2 = round(image_size * separate_ratio * 7)
+#     sets = np.arange(image_size * 7)
+#     # print(sets)
+#     np.random.shuffle(sets)
+#     # print(separate)
+#     # print(sets[:separate])
+#     # a = sets[:separate] % image_size < separate
+#     # print(a)
+#     print(len(feats))
+#     test = [False] * image_size * 7
+#     train = [True] * image_size * 7
+#     # test = np.array([i for i in range(image_size * 7)], np.dtype(bool))
+#     # train = np.array([i for i in range(image_size * 7)], np.dtype(bool))
+#     # print(sets)
+#     # print(separate2)
+#     # print(sets[separate2:])
+#     for i in sets[separate2:]:
+#         train[i] = False
+#     for i in sets[separate2:]:
+#         test[i] = True
+#     # print("AAAA")
+#     test = np.array(test)
+#     train = np.array(train)
+
+#     # train = np.array([i for i in range(image_size * 7)], np.dtype(int)) % image_size < separate
+#     # test = np.array([i for i in range(image_size * 7)], np.dtype(int)) % image_size >= separate
+#     # print(image_size)
+#     # print(separate2)
+#     y = np.array([i for i in range(1, 8) for j in range(image_size)])
+#     X_train = feats[train]
+#     X_test = feats[test]
+#     y_train = y[train]
+#     y_test = y[test]
+#     # print(test)
+#     # print(train)
+#     # print(sets[:separate])
+#     return X_train, X_test, y_train, y_test, sets[:separate]
+
+
+def separate_train_test(feats, separate_ratio, image_size=240, separate_list=[]):
     """
     Separates the database in training and testing groups. Also labels the pictures.
     :param feats: Feature matrix
     :return: X_train, X_test, y_train, y_test
     """
-    separate = round(image_size * separate_ratio)
-    separate2 = round(image_size * separate_ratio * 7)
-    sets = np.arange(image_size * 7)
-    # print(sets)
-    np.random.shuffle(sets)
+    if (separate_list == []):
+        separate = round(image_size * separate_ratio)
+        separate2 = round(image_size * separate_ratio * 7)
+        sets = np.arange(image_size * 7)
+        # print(sets)
+        np.random.shuffle(sets)
+        separate_list = sets[separate2:]
     # print(separate)
     # print(sets[:separate])
     # a = sets[:separate] % image_size < separate
@@ -804,9 +852,14 @@ def separate_train_test(feats, separate_ratio, image_size=240):
     # print(sets)
     # print(separate2)
     # print(sets[separate2:])
-    for i in sets[separate2:]:
+    # for i in sets[separate2:]:
+    #     train[i] = False
+    # for i in sets[separate2:]:
+    #     test[i] = True
+
+    for i in separate_list:
         train[i] = False
-    for i in sets[separate2:]:
+    for i in separate_list:
         test[i] = True
     # print("AAAA")
     test = np.array(test)
@@ -824,7 +877,7 @@ def separate_train_test(feats, separate_ratio, image_size=240):
     # print(test)
     # print(train)
     # print(sets[:separate])
-    return X_train, X_test, y_train, y_test
+    return X_train, X_test, y_train, y_test, separate_list
 
 
 def get_img_names(ammount=240):
